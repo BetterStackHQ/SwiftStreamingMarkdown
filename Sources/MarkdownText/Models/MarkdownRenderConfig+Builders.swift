@@ -10,6 +10,7 @@ extension MarkdownRenderConfig {
   public func withShouldAnimateText(value: Bool) -> MarkdownRenderConfig {
     MarkdownRenderConfig(
       shouldAnimateText: value,
+      disableSmartTypography: disableSmartTypography,
       blockQuoteStyle: blockQuoteStyle,
       headingStyle: headingStyle,
       orderedListStyle: orderedListStyle,
@@ -27,6 +28,7 @@ extension MarkdownRenderConfig {
   public func withBlockQuoteStyle(value: MarkdownTextStyle) -> MarkdownRenderConfig {
     MarkdownRenderConfig(
       shouldAnimateText: shouldAnimateText,
+      disableSmartTypography: disableSmartTypography,
       blockQuoteStyle: value,
       headingStyle: headingStyle,
       orderedListStyle: orderedListStyle,
@@ -44,6 +46,7 @@ extension MarkdownRenderConfig {
   public func withHeadingStyle(value: MarkdownHeadingTextStyle) -> MarkdownRenderConfig {
     MarkdownRenderConfig(
       shouldAnimateText: shouldAnimateText,
+      disableSmartTypography: disableSmartTypography,
       blockQuoteStyle: blockQuoteStyle,
       headingStyle: value,
       orderedListStyle: orderedListStyle,
@@ -61,6 +64,7 @@ extension MarkdownRenderConfig {
   public func withOrderedListStyle(value: MarkdownTextStyle) -> MarkdownRenderConfig {
     MarkdownRenderConfig(
       shouldAnimateText: shouldAnimateText,
+      disableSmartTypography: disableSmartTypography,
       blockQuoteStyle: blockQuoteStyle,
       headingStyle: headingStyle,
       orderedListStyle: value,
@@ -78,6 +82,7 @@ extension MarkdownRenderConfig {
   public func withParagraphStyle(value: MarkdownTextStyle) -> MarkdownRenderConfig {
     MarkdownRenderConfig(
       shouldAnimateText: shouldAnimateText,
+      disableSmartTypography: disableSmartTypography,
       blockQuoteStyle: blockQuoteStyle,
       headingStyle: headingStyle,
       orderedListStyle: orderedListStyle,
@@ -95,6 +100,7 @@ extension MarkdownRenderConfig {
   public func withTableStyle(value: MarkdownTableTextStyle) -> MarkdownRenderConfig {
     MarkdownRenderConfig(
       shouldAnimateText: shouldAnimateText,
+      disableSmartTypography: disableSmartTypography,
       blockQuoteStyle: blockQuoteStyle,
       headingStyle: headingStyle,
       orderedListStyle: orderedListStyle,
@@ -112,6 +118,7 @@ extension MarkdownRenderConfig {
   public func withInlineStyle(value: MarkdownInlineTextStyle) -> MarkdownRenderConfig {
     MarkdownRenderConfig(
       shouldAnimateText: shouldAnimateText,
+      disableSmartTypography: disableSmartTypography,
       blockQuoteStyle: blockQuoteStyle,
       headingStyle: headingStyle,
       orderedListStyle: orderedListStyle,
@@ -130,6 +137,7 @@ extension MarkdownRenderConfig {
   public func withTextContextMenu(value: TextContextMenu?) -> MarkdownRenderConfig {
     MarkdownRenderConfig(
       shouldAnimateText: shouldAnimateText,
+      disableSmartTypography: disableSmartTypography,
       blockQuoteStyle: blockQuoteStyle,
       headingStyle: headingStyle,
       orderedListStyle: orderedListStyle,
@@ -147,6 +155,7 @@ extension MarkdownRenderConfig {
   public func withBlockSpacing(value: CGFloat) -> MarkdownRenderConfig {
     MarkdownRenderConfig(
       shouldAnimateText: shouldAnimateText,
+      disableSmartTypography: disableSmartTypography,
       blockQuoteStyle: blockQuoteStyle,
       headingStyle: headingStyle,
       orderedListStyle: orderedListStyle,
@@ -164,6 +173,7 @@ extension MarkdownRenderConfig {
   public func withCodeBlockConfig(value: CodeBlockConfig) -> MarkdownRenderConfig {
     MarkdownRenderConfig(
       shouldAnimateText: shouldAnimateText,
+      disableSmartTypography: disableSmartTypography,
       blockQuoteStyle: blockQuoteStyle,
       headingStyle: headingStyle,
       orderedListStyle: orderedListStyle,
@@ -173,6 +183,24 @@ extension MarkdownRenderConfig {
       textContextMenu: textContextMenu,
       citationConfig: citationConfig,
       codeBlockConfig: value,
+      blockSpacing: blockSpacing
+    )
+  }
+
+  /// Returns a copy with `citationConfig` replaced.
+  public func withCitationConfig(value: CitationConfig) -> MarkdownRenderConfig {
+    MarkdownRenderConfig(
+      shouldAnimateText: shouldAnimateText,
+      disableSmartTypography: disableSmartTypography,
+      blockQuoteStyle: blockQuoteStyle,
+      headingStyle: headingStyle,
+      orderedListStyle: orderedListStyle,
+      paragraphStyle: paragraphStyle,
+      tableStyle: tableStyle,
+      inlineStyle: inlineStyle,
+      textContextMenu: textContextMenu,
+      citationConfig: value,
+      codeBlockConfig: codeBlockConfig,
       blockSpacing: blockSpacing
     )
   }

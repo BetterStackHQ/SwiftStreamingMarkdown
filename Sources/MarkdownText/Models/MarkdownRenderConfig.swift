@@ -15,6 +15,8 @@ import SwiftUI
 public struct MarkdownRenderConfig: Hashable, Sendable {
   /// When `true`, newly appended text fades in instead of appearing instantly.
   public let shouldAnimateText: Bool
+  /// Disables cmark's smart-quote/dash substitution during parsing; upstream-escaped literal text can otherwise still be rewritten by it.
+  public let disableSmartTypography: Bool
   /// Styling applied to block-quote content.
   public let blockQuoteStyle: MarkdownTextStyle
   /// Per-level heading styling.
@@ -116,6 +118,8 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
     public let linkTextFont: MDFont
     /// Foreground color applied to link runs.
     public let linkTextColor: Color
+    /// Underline style applied to link runs. Defaults to no underline, matching upstream behavior.
+    public let linkUnderlineStyle: NSUnderlineStyle
     /// Font used for inline code spans.
     public let codeTextFont: MDFont
     /// Foreground color applied to inline code spans.
@@ -126,10 +130,11 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
     public let codeUnderlineColor: Color
 
     /// Create an inline text style with the supplied fonts and color palette.
-    public init(boldTextColor: Color, linkTextFont: MDFont, linkTextColor: Color, codeTextFont: MDFont, codeTextColor: Color, codeBackgroundColor: Color, codeUnderlineColor: Color) {
+    public init(boldTextColor: Color, linkTextFont: MDFont, linkTextColor: Color, linkUnderlineStyle: NSUnderlineStyle = [], codeTextFont: MDFont, codeTextColor: Color, codeBackgroundColor: Color, codeUnderlineColor: Color) {
       self.boldTextColor = boldTextColor
       self.linkTextFont = linkTextFont
       self.linkTextColor = linkTextColor
+      self.linkUnderlineStyle = linkUnderlineStyle
       self.codeTextFont = codeTextFont
       self.codeTextColor = codeTextColor
       self.codeBackgroundColor = codeBackgroundColor
@@ -237,6 +242,7 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
   /// override only the fields they care about.
   public init(
     shouldAnimateText: Bool = false,
+    disableSmartTypography: Bool = false,
     blockQuoteStyle: MarkdownTextStyle = MarkdownRenderConfig.defaultBlockQuoteStyle,
     headingStyle: MarkdownHeadingTextStyle = MarkdownRenderConfig.defaultHeadingStyle,
     orderedListStyle: MarkdownTextStyle = MarkdownRenderConfig.defaultOrderedListStyle,
@@ -249,6 +255,7 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
     blockSpacing: CGFloat = MarkdownRenderConfig.defaultBlockSpacing
   ) {
     self.shouldAnimateText = shouldAnimateText
+    self.disableSmartTypography = disableSmartTypography
     self.blockQuoteStyle = blockQuoteStyle
     self.headingStyle = headingStyle
     self.orderedListStyle = orderedListStyle

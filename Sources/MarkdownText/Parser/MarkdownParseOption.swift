@@ -12,13 +12,18 @@ public struct MarkdownParseOption {
   /// Specify how to parse latex
   public let latexMatchingRules: [LatexMatching]
 
+  /// Disables cmark's smart-quote/dash substitution during parsing; upstream-escaped literal text can otherwise still be rewritten by it.
+  public let disableSmartTypography: Bool
+
   /// Create a new parse option.
   /// - Parameters:
   ///   - speculativeRewrite: See `speculativeRewrite`.
   ///   - latexMatchingRules: See `latexMatchingRules`. Defaults to every supported rule.
-  public init(speculativeRewrite: Bool, latexMatchingRules: [LatexMatching] = LatexMatching.allCases) {
+  ///   - disableSmartTypography: See `disableSmartTypography`. Defaults to `false`.
+  public init(speculativeRewrite: Bool, latexMatchingRules: [LatexMatching] = LatexMatching.allCases, disableSmartTypography: Bool = false) {
     self.speculativeRewrite = speculativeRewrite
     self.latexMatchingRules = latexMatchingRules
+    self.disableSmartTypography = disableSmartTypography
   }
 
   /// The set of delimiter forms the LaTeX preprocessor will recognize. Omitting

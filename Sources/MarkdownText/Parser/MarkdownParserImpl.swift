@@ -24,8 +24,11 @@ public final class MarkdownParserImpl: MarkdownParser {
   public func parse(text: String, option: MarkdownParseOption) async -> MarkdownParseResult {
     let targetString = latexPreprocessor.process(input: text, matchingRules: option.latexMatchingRules)
 
+    // Smart substitution runs in the same cmark pass that unescapes backslash-escaped literal text, so escaping alone can't opt a run out of it.
+    let parseOptions: ParseOptions = option.disableSmartTypography ? .disableSmartOpts : []
+
     var result: MarkdownParseResult = MarkdownParseResult(
-      document: Document(parsing: targetString),
+      document: Document(parsing: targetString, options: parseOptions),
       speculativeRewritten: false
     )
 
