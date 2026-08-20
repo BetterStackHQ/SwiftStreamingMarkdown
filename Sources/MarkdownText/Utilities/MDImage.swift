@@ -22,4 +22,19 @@ extension MDImage {
     self.init(systemSymbolName: name, accessibilityDescription: nil)
     #endif
   }
+
+  /// Recolors every opaque pixel to `color`, preserving alpha — used to tint a citation
+  /// chip's leading icon to the same resolved color as its text.
+  func tinted(_ color: MDColor) -> MDImage {
+    #if canImport(UIKit)
+    return withTintColor(color, renderingMode: .alwaysTemplate)
+    #elseif canImport(AppKit)
+    return NSImage(size: size, flipped: false) { rect in
+      color.setFill()
+      rect.fill()
+      self.draw(in: rect, from: .zero, operation: .destinationIn, fraction: 1)
+      return true
+    }
+    #endif
+  }
 }

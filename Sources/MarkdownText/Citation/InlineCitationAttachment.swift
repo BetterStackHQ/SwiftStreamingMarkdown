@@ -20,6 +20,9 @@ final class InlineCitationAttachment: NSTextAttachment {
   let font: MDFont
   let textColor: MDColor
   let backgroundColor: MDColor
+  /// Untinted leading icon from `CitationConfig.citationImage`, or nil for no icon.
+  /// Tinted to match `textColor` per-appearance when the preview images are rendered.
+  let icon: MDImage?
 
   // MARK: - Precomputed preview images
 
@@ -31,6 +34,8 @@ final class InlineCitationAttachment: NSTextAttachment {
 
   static let textInsets = MDEdgeInsets(top: 2, left: 4, bottom: 2, right: 4)
   static let cornerRadius: CGFloat = 6
+  /// Gap between the leading icon and the title text, when an icon is present.
+  static let iconTextSpacing: CGFloat = 3
 
   #if canImport(UIKit)
   override var image: UIImage? {
@@ -68,15 +73,16 @@ final class InlineCitationAttachment: NSTextAttachment {
     self.font = citationConfig.font
     self.textColor = MDColor(citationConfig.textColor)
     self.backgroundColor = MDColor(citationConfig.backgroundColor)
+    self.icon = citationData.flatMap { citationConfig.citationImage?($0.url.absoluteString) }
 
     if let title = citationData?.title {
       self.lightPreviewImage = Self.renderCitationImage(
-        title: title, font: self.font,
+        title: title, font: self.font, icon: self.icon,
         textColor: self.textColor, backgroundColor: self.backgroundColor,
         appearance: .light
       )
       self.darkPreviewImage = Self.renderCitationImage(
-        title: title, font: self.font,
+        title: title, font: self.font, icon: self.icon,
         textColor: self.textColor, backgroundColor: self.backgroundColor,
         appearance: .dark
       )
@@ -104,7 +110,7 @@ final class InlineCitationAttachment: NSTextAttachment {
   // MARK: - Preview Image Rendering
 
   private static func renderCitationImage(
-    title: String, font: MDFont,
+    title: String, font: MDFont, icon: MDImage?,
     textColor: MDColor, backgroundColor: MDColor,
     appearance: AppAppearance
   ) -> MDImage {
@@ -124,10 +130,23 @@ final class InlineCitationAttachment: NSTextAttachment {
 
     let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: resolvedTextColor]
     let textSize = (title as NSString).size(withAttributes: attributes)
+
+    // The icon scales with the chip font (its cap height) and never exceeds the text's
+    // own line height, so it stays visually anchored to the title regardless of size.
+    let resolvedIcon = icon?.tinted(resolvedTextColor)
+    let iconSide = resolvedIcon != nil ? min(ceil(font.capHeight), ceil(textSize.height)) : 0
+    let iconLeading = resolvedIcon != nil ? iconSide + iconTextSpacing : 0
+
     let totalSize = CGSize(
-      width: ceil(textSize.width) + textInsets.left + textInsets.right,
+      width: ceil(textSize.width) + iconLeading + textInsets.left + textInsets.right,
       height: ceil(textSize.height) + textInsets.top + textInsets.bottom
     )
+    let iconRect = CGRect(
+      x: textInsets.left, y: textInsets.top + (ceil(textSize.height) - iconSide) / 2,
+      width: iconSide, height: iconSide
+    )
+    let textRect = CGRect(x: textInsets.left + iconLeading, y: textInsets.top,
+                          width: ceil(textSize.width), height: ceil(textSize.height))
 
     // Render the citation pill image
     #if canImport(UIKit)
@@ -138,8 +157,7 @@ final class InlineCitationAttachment: NSTextAttachment {
       resolvedBackgroundColor.setFill()
       path.fill()
 
-      let textRect = CGRect(x: textInsets.left, y: textInsets.top,
-                            width: ceil(textSize.width), height: ceil(textSize.height))
+      resolvedIcon?.draw(in: iconRect)
       (title as NSString).draw(in: textRect, withAttributes: attributes)
     }
     #elseif canImport(AppKit)
@@ -148,8 +166,9 @@ final class InlineCitationAttachment: NSTextAttachment {
       resolvedBackgroundColor.setFill()
       path.fill()
 
-      let textRect = CGRect(x: Self.textInsets.left, y: Self.textInsets.bottom,
-                            width: ceil(textSize.width), height: ceil(textSize.height))
+      resolvedIcon?.draw(in: iconRect)
+      let textRect = CGRect(x: textRect.minX, y: Self.textInsets.bottom,
+                            width: textRect.width, height: textRect.height)
       (title as NSString).draw(in: textRect, withAttributes: attributes)
       return true
     }

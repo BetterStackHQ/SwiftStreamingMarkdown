@@ -154,6 +154,12 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
     public let textColor: Color
     /// Background fill of the citation chip.
     public let backgroundColor: Color
+    /// Optional leading icon resolved per citation from its link destination (the
+    /// decoded `betterstack-mention://type/id?…` URL, as an absolute-string). Return
+    /// `nil` to render that citation without an icon. The image is composited at the
+    /// chip's font size and tinted to match `textColor` in each appearance, so a
+    /// template/alpha-mask image (no baked-in color) gives the cleanest result.
+    public let citationImage: (@Sendable (_ destination: String) -> MDImage?)?
 
     /// Create a citation configuration.
     /// - Parameters:
@@ -162,18 +168,21 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
     ///   - font: See `font`.
     ///   - textColor: See `textColor`.
     ///   - backgroundColor: See `backgroundColor`.
+    ///   - citationImage: See `citationImage`. Defaults to `nil` (no icon).
     public init(
       isEnabled: Bool = true,
       coder: CitationCoder = .default,
       font: MDFont,
       textColor: Color,
-      backgroundColor: Color
+      backgroundColor: Color,
+      citationImage: (@Sendable (_ destination: String) -> MDImage?)? = nil
     ) {
       self.isEnabled = isEnabled
       self.coder = coder
       self.font = font
       self.textColor = textColor
       self.backgroundColor = backgroundColor
+      self.citationImage = citationImage
     }
 
     /// Default citation styling derived from the bundled `Typography` and `Color.Theme` palette.
@@ -182,6 +191,25 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
       textColor: Color.Theme.Foreground.Primary.Primary750,
       backgroundColor: Color.Theme.Overlay.Black.Black5
     )
+
+    /// Equality compares every field except `citationImage` (a function value can't be
+    /// compared), matching how `TextContextMenuItem` treats its own image field.
+    public static func == (lhs: CitationConfig, rhs: CitationConfig) -> Bool {
+      lhs.isEnabled == rhs.isEnabled &&
+        lhs.coder == rhs.coder &&
+        lhs.font == rhs.font &&
+        lhs.textColor == rhs.textColor &&
+        lhs.backgroundColor == rhs.backgroundColor
+    }
+
+    /// Hash mirrors `==`: `citationImage` is excluded.
+    public func hash(into hasher: inout Hasher) {
+      hasher.combine(isEnabled)
+      hasher.combine(coder)
+      hasher.combine(font)
+      hasher.combine(textColor)
+      hasher.combine(backgroundColor)
+    }
   }
 
   /// Default inter-block spacing.
