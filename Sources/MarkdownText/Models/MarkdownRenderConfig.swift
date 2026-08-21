@@ -160,6 +160,13 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
     /// chip's font size and tinted to match `textColor` in each appearance, so a
     /// template/alpha-mask image (no baked-in color) gives the cleanest result.
     public let citationImage: (@Sendable (_ destination: String) -> MDImage?)?
+    /// Points added to the citation attachment's `.baselineOffset`, on top of the
+    /// existing `font.descender` correction. The descender alone only accounts for the
+    /// glyph descender space, not for a chip taller than the surrounding line box — a
+    /// host whose chip is noticeably taller than its line can pull it back down toward
+    /// the line's vertical center with a negative value here. Defaults to `0`, which
+    /// keeps today's `font.descender`-only behavior unchanged.
+    public let citationBaselineAdjustment: CGFloat
 
     /// Create a citation configuration.
     /// - Parameters:
@@ -169,13 +176,15 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
     ///   - textColor: See `textColor`.
     ///   - backgroundColor: See `backgroundColor`.
     ///   - citationImage: See `citationImage`. Defaults to `nil` (no icon).
+    ///   - citationBaselineAdjustment: See `citationBaselineAdjustment`. Defaults to `0`.
     public init(
       isEnabled: Bool = true,
       coder: CitationCoder = .default,
       font: MDFont,
       textColor: Color,
       backgroundColor: Color,
-      citationImage: (@Sendable (_ destination: String) -> MDImage?)? = nil
+      citationImage: (@Sendable (_ destination: String) -> MDImage?)? = nil,
+      citationBaselineAdjustment: CGFloat = 0
     ) {
       self.isEnabled = isEnabled
       self.coder = coder
@@ -183,6 +192,7 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
       self.textColor = textColor
       self.backgroundColor = backgroundColor
       self.citationImage = citationImage
+      self.citationBaselineAdjustment = citationBaselineAdjustment
     }
 
     /// Default citation styling derived from the bundled `Typography` and `Color.Theme` palette.
@@ -199,7 +209,8 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
         lhs.coder == rhs.coder &&
         lhs.font == rhs.font &&
         lhs.textColor == rhs.textColor &&
-        lhs.backgroundColor == rhs.backgroundColor
+        lhs.backgroundColor == rhs.backgroundColor &&
+        lhs.citationBaselineAdjustment == rhs.citationBaselineAdjustment
     }
 
     /// Hash mirrors `==`: `citationImage` is excluded.
@@ -209,6 +220,7 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
       hasher.combine(font)
       hasher.combine(textColor)
       hasher.combine(backgroundColor)
+      hasher.combine(citationBaselineAdjustment)
     }
   }
 

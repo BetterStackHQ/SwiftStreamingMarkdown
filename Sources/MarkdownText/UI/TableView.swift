@@ -334,8 +334,9 @@ struct TableLayout: Layout {
 
 // MARK: - Helper Functions
 extension TableView {
-  /// Apply typography theming and return themed content for use with ParagraphView
-  private func applyTypographyThemingAndGetContent(_ attributedString: NSAttributedString) -> NSMutableAttributedString {
+  /// Apply typography theming and return themed content for use with ParagraphView.
+  /// Internal rather than `private` so `citationBaselineAdjustment` can be tested directly.
+  func applyTypographyThemingAndGetContent(_ attributedString: NSAttributedString) -> NSMutableAttributedString {
     // Apply typography theming for table cells
     let mutableAttributedString = NSMutableAttributedString(attributedString: attributedString)
     let fullRange = NSRange(location: 0, length: mutableAttributedString.length)
@@ -378,7 +379,7 @@ extension TableView {
     // Apply baseline offset only when we have both citations and non-attachment content
     let shouldApplyBaselineOffset = containsCitationAttachments && containsNonAttachmentContent
     if shouldApplyBaselineOffset {
-      let baselineOffsetValue = Typography.base.mdFont.descender
+      let baselineOffsetValue = Typography.base.mdFont.descender + config.citationConfig.citationBaselineAdjustment
       for range in citationRanges {
         mutableAttributedString.addAttribute(.baselineOffset, value: baselineOffsetValue, range: range)
       }
