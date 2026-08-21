@@ -287,5 +287,47 @@ struct ParagraphViewTests {
     #expect(citationData?.accessibilityLabel == "Test Source", "Should preserve accessibility label")
     #expect(citationData?.url != nil, "Should have valid URL")
   }
+
+  // MARK: - citationBaselineAdjustment (buildParagraphContent's own .baselineOffset attribute)
+
+  /// Runs a citation-bearing sentence through the real parse→convert pipeline
+  /// (`buildParagraphContent`, `Paragraph+.swift`) rather than hand-building an attachment,
+  /// since that is the one place `.baselineOffset` is actually set.
+  private func convertedParagraphContent(config: MarkdownRenderConfig) async -> NSMutableAttributedString? {
+    let citationMarker = "9F742443"
+    let markdown = "Item with citation [\(citationMarker)](http://example.com?citationMarker=\(citationMarker)&citationTitle=ESPN&citationA11yValue=ESPN)"
+    let doc = await MarkdownParserImpl().parse(text: markdown)
+    guard case .paragraph(_, let content) = doc.convert(with: config).first else { return nil }
+    return content
+  }
+
+  private func baselineOffset(in content: NSAttributedString) -> CGFloat? {
+    var offset: CGFloat?
+    content.enumerateAttribute(.baselineOffset, in: NSRange(location: 0, length: content.length)) { value, _, _ in
+      if let value = value as? CGFloat { offset = value }
+    }
+    return offset
+  }
+
+  @Test("Default citationBaselineAdjustment (0) leaves the baseline offset exactly the font descender")
+  func defaultCitationBaselineAdjustmentIsByteIdentical() async throws {
+    let config = MarkdownRenderConfig.default
+    let content = try #require(await convertedParagraphContent(config: config))
+    #expect(baselineOffset(in: content) == config.paragraphStyle.textFonts.normal.descender)
+  }
+
+  @Test("A nonzero citationBaselineAdjustment shifts the baseline offset by exactly that amount")
+  func nonzeroCitationBaselineAdjustmentShiftsByExactly() async throws {
+    let adjustment: CGFloat = -5
+    let citationDefault = MarkdownRenderConfig.CitationConfig.default
+    let config = MarkdownRenderConfig.default.withCitationConfig(value: .init(
+      font: citationDefault.font,
+      textColor: citationDefault.textColor,
+      backgroundColor: citationDefault.backgroundColor,
+      citationBaselineAdjustment: adjustment
+    ))
+    let content = try #require(await convertedParagraphContent(config: config))
+    #expect(baselineOffset(in: content) == config.paragraphStyle.textFonts.normal.descender + adjustment)
+  }
 }
 #endif

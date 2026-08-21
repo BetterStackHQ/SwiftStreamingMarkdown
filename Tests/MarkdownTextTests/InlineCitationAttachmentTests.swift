@@ -99,5 +99,23 @@ struct InlineCitationAttachmentTests {
     )
     #expect(received == data.url.absoluteString)
   }
+
+  // MARK: - citationBaselineAdjustment
+
+  @Test("citationBaselineAdjustment defaults to zero")
+  func citationBaselineAdjustmentDefaultsToZero() {
+    #expect(makeConfig().citationBaselineAdjustment == 0)
+    #expect(MarkdownRenderConfig.CitationConfig.default.citationBaselineAdjustment == 0)
+  }
+
+  @Test("citationBaselineAdjustment participates in CitationConfig equality and hashing")
+  func citationBaselineAdjustmentParticipatesInEquality() {
+    let base = makeConfig()
+    let adjusted = MarkdownRenderConfig.CitationConfig(
+      font: base.font, textColor: base.textColor, backgroundColor: base.backgroundColor,
+      citationBaselineAdjustment: -3
+    )
+    #expect(base != adjusted)
+  }
 }
 #endif

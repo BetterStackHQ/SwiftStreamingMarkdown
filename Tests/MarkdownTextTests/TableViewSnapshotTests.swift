@@ -64,6 +64,32 @@ final class TableViewSnapshotTests: SnapshotTestCase {
     }
   }
 
+  // MARK: - citationBaselineAdjustment
+
+  /// `applyTypographyThemingAndGetContent` reads `self.config` (environment-injected in
+  /// production, via `DocumentView`'s `.environment(\.markdownConfig, ...)`); a `TableView`
+  /// value that was never hosted by SwiftUI reads the environment key's compiled-in
+  /// default (`MarkdownRenderConfig.default`), so this only exercises the default
+  /// (`citationBaselineAdjustment == 0`) case — the byte-identical-behavior guarantee.
+  /// The nonzero-adjustment arithmetic added to this same method is identical in shape to
+  /// the one covered both ways in `ParagraphViewTests`.
+  @MainActor
+  func testTableViewCitationBaselineAdjustmentDefaultsToDescenderOnly() throws {
+    let attachment = createCitationAttachment(url: "http://example.com", text: "ESPN")
+    let attributedString = NSMutableAttributedString(string: "See ")
+    attributedString.append(NSAttributedString(attachment: attachment))
+    attributedString.append(NSAttributedString(string: " for more."))
+
+    let tableView = TableView(headings: [], rows: [], columnMaxWidths: [:])
+    let themed = tableView.applyTypographyThemingAndGetContent(attributedString)
+
+    var offset: CGFloat?
+    themed.enumerateAttribute(.baselineOffset, in: NSRange(location: 0, length: themed.length)) { value, _, _ in
+      if let value = value as? CGFloat { offset = value }
+    }
+    XCTAssertEqual(offset, Typography.base.mdFont.descender)
+  }
+
   // MARK: - Snapshot Tests
 
   // [Auto-disabled] Real test failure detected by CI pipeline

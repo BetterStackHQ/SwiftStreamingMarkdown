@@ -57,10 +57,11 @@ extension BlockMarkup {
             range: NSRange(location: 0, length: attachmentString.length)
           )
 
-          // Apply baseline offset to the attachment using the font from config
+          // Apply baseline offset to the attachment using the font from config, plus any
+          // host-supplied correction for a chip taller than the surrounding line box.
           attachmentString.addAttribute(
             .baselineOffset,
-            value: config.paragraphStyle.textFonts.normal.descender,
+            value: config.paragraphStyle.textFonts.normal.descender + config.citationConfig.citationBaselineAdjustment,
             range: NSRange(location: 0, length: attachmentString.length)
           )
 
