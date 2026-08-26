@@ -135,8 +135,10 @@ struct TableView: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 0) {
-      if controller != nil {
+    // Tap-to-expand and the copy/download buttons only exist when the host opts in.
+    let showsActions = controller != nil && config.tableStyle.showsActionButtons
+    return VStack(alignment: .leading, spacing: 0) {
+      if showsActions {
         scrollView.onTapGesture {
           withAnimation(.easeInOut(duration: 0.2)) {
             isExpanded.toggle()
@@ -146,7 +148,7 @@ struct TableView: View {
         scrollView
       }
 
-      if isExpanded {
+      if showsActions && isExpanded {
         HStack(spacing: 0) {
           tableCopyButton
           tableDownloadButton

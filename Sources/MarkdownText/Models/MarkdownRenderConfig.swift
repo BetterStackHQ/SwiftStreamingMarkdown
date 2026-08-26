@@ -69,15 +69,19 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
     public let borderColor: Color
     /// Tint color of the action button shown in the table footer.
     public let actionButtonColor: Color
+    /// Whether tapping a table expands it to reveal the copy/download action buttons.
+    /// Off by default: the buttons are chat chrome most hosts don't want.
+    public let showsActionButtons: Bool
 
     /// Create a table style with the supplied fonts and color palette.
-    public init(textFonts: TextFonts, headerTextColor: Color, regularTextColor: Color, headerBackgroundColor: Color, borderColor: Color, actionButtonColor: Color) {
+    public init(textFonts: TextFonts, headerTextColor: Color, regularTextColor: Color, headerBackgroundColor: Color, borderColor: Color, actionButtonColor: Color, showsActionButtons: Bool = false) {
       self.textFonts = textFonts
       self.headerTextColor = headerTextColor
       self.regularTextColor = regularTextColor
       self.headerBackgroundColor = headerBackgroundColor
       self.borderColor = borderColor
       self.actionButtonColor = actionButtonColor
+      self.showsActionButtons = showsActionButtons
     }
   }
 
