@@ -54,7 +54,7 @@ struct TableView: View {
 
   private func headerView(colIdx: Int) -> some View {
     HStack(spacing: 0) {
-      Text(headings[colIdx])
+      Text(config.tableStyle.boldsHeader ? Self.emboldened(headings[colIdx], with: config.tableStyle.textFonts) : headings[colIdx])
         .foregroundStyle(config.tableStyle.headerTextColor)
         .lineLimit(nil)
         .multilineTextAlignment(.leading)
@@ -68,7 +68,16 @@ struct TableView: View {
     .padding(12)
     .id("\(colIdx)-heading")
     .background(config.tableStyle.headerBackgroundColor)
-    .applyHeaderBorder(colIndex: colIdx, colCount: headings.count, color: config.tableStyle.borderColor)
+    .applyHeaderBorder(colIndex: colIdx, colCount: headings.count, color: config.tableStyle.borderColor, columnDividers: config.tableStyle.showsColumnDividers)
+  }
+
+  /// `heading` with every run set in the style's bold face, so a header reads like an
+  /// HTML `th` whatever font the parser assigned it. Unchanged when the style has no bold face.
+  static func emboldened(_ heading: AttributedString, with fonts: TextFonts) -> AttributedString {
+    guard let bold = fonts.bold else { return heading }
+    let mutable = NSMutableAttributedString(heading)
+    mutable.addAttribute(.font, value: bold, range: NSRange(location: 0, length: mutable.length))
+    return AttributedString(mutable)
   }
 
   @ViewBuilder
@@ -113,7 +122,7 @@ struct TableView: View {
       .frame(maxHeight: .infinity)
       .padding(12)
       .id("\(colIdx)-\(rowIdx)")
-      .applyCellBorder(colIndex: colIdx, colCount: headings.count, rowIndex: rowIdx, rowCount: numOfRows, color: config.tableStyle.borderColor)
+      .applyCellBorder(colIndex: colIdx, colCount: headings.count, rowIndex: rowIdx, rowCount: numOfRows, color: config.tableStyle.borderColor, columnDividers: config.tableStyle.showsColumnDividers)
     case .text(let attributedString):
       HStack(spacing: 0) {
         Text(attributedString)
@@ -130,7 +139,7 @@ struct TableView: View {
       .frame(maxHeight: .infinity)
       .padding(12)
       .id("\(colIdx)-\(rowIdx)")
-      .applyCellBorder(colIndex: colIdx, colCount: headings.count, rowIndex: rowIdx, rowCount: numOfRows, color: config.tableStyle.borderColor)
+      .applyCellBorder(colIndex: colIdx, colCount: headings.count, rowIndex: rowIdx, rowCount: numOfRows, color: config.tableStyle.borderColor, columnDividers: config.tableStyle.showsColumnDividers)
     }
   }
 
@@ -166,9 +175,9 @@ struct TableView: View {
         .overlay(
           RoundedRectangle(cornerRadius: 12)
             .inset(by: 0.5)
-            .stroke(config.tableStyle.borderColor, lineWidth: 1)
+            .stroke(config.tableStyle.showsOuterBorder ? config.tableStyle.borderColor : .clear, lineWidth: 1)
         )
-        .cornerRadius(12)
+        .cornerRadius(config.tableStyle.showsOuterBorder ? 12 : 0)
         .onWidthChange { newWidth in
           scrollWidth = newWidth
         }
@@ -239,20 +248,20 @@ struct TableView: View {
 
 extension View {
 
-  func applyHeaderBorder(colIndex: Int, colCount: Int, color: Color) -> some View {
+  func applyHeaderBorder(colIndex: Int, colCount: Int, color: Color, columnDividers: Bool = true) -> some View {
     var edges: [Edge] = [.bottom]
-    if colIndex != colCount - 1 {
+    if columnDividers && colIndex != colCount - 1 {
       edges.append(.trailing)
     }
     return border(width: 1, edges: edges, color: color)
   }
 
-  func applyCellBorder(colIndex: Int, colCount: Int, rowIndex: Int, rowCount: Int, color: Color) -> some View {
+  func applyCellBorder(colIndex: Int, colCount: Int, rowIndex: Int, rowCount: Int, color: Color, columnDividers: Bool = true) -> some View {
     var edges: [Edge] = []
     if rowIndex < rowCount - 1 {
       edges.append(.bottom)
     }
-    if colIndex < colCount - 1 {
+    if columnDividers && colIndex < colCount - 1 {
       edges.append(.trailing)
     }
     return border(width: 1, edges: edges, color: color)
