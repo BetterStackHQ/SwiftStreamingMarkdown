@@ -33,7 +33,8 @@ final class InlineCitationAttachment: NSTextAttachment {
   // MARK: - Shared Layout
 
   static let textInsets = MDEdgeInsets(top: 2, left: 4, bottom: 2, right: 4)
-  static let cornerRadius: CGFloat = 6
+  /// The chip is a capsule: fully round ends, so the radius is half the rendered height.
+  static func cornerRadius(for size: CGSize) -> CGFloat { size.height / 2 }
   /// Gap between the leading icon and the title text, when an icon is present.
   static let iconTextSpacing: CGFloat = 3
   /// Icon side as a multiple of the chip font's point size (16pt at a 13.5pt chip).
@@ -158,7 +159,7 @@ final class InlineCitationAttachment: NSTextAttachment {
     let renderer = UIGraphicsImageRenderer(size: totalSize)
     return renderer.image { _ in
       let rect = CGRect(origin: .zero, size: totalSize)
-      let path = UIBezierPath(roundedRect: rect, cornerRadius: cornerRadius)
+      let path = UIBezierPath(roundedRect: rect, cornerRadius: Self.cornerRadius(for: rect.size))
       resolvedBackgroundColor.setFill()
       path.fill()
 
@@ -167,7 +168,8 @@ final class InlineCitationAttachment: NSTextAttachment {
     }
     #elseif canImport(AppKit)
     return NSImage(size: totalSize, flipped: false) { rect in
-      let path = NSBezierPath(roundedRect: rect, xRadius: cornerRadius, yRadius: cornerRadius)
+      let radius = Self.cornerRadius(for: rect.size)
+      let path = NSBezierPath(roundedRect: rect, xRadius: radius, yRadius: radius)
       resolvedBackgroundColor.setFill()
       path.fill()
 
