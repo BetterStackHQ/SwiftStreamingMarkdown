@@ -36,6 +36,8 @@ final class InlineCitationAttachment: NSTextAttachment {
   static let cornerRadius: CGFloat = 6
   /// Gap between the leading icon and the title text, when an icon is present.
   static let iconTextSpacing: CGFloat = 3
+  /// Icon side as a multiple of the chip font's point size (16pt at a 13.5pt chip).
+  static let iconScale: CGFloat = 1.15
 
   #if canImport(UIKit)
   override var image: UIImage? {
@@ -131,10 +133,13 @@ final class InlineCitationAttachment: NSTextAttachment {
     let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: resolvedTextColor]
     let textSize = (title as NSString).size(withAttributes: attributes)
 
-    // The icon scales with the chip font (its cap height) and never exceeds the text's
+    // The icon scales with the chip font — a touch over its point size, the way a
+    // web chip draws a text-size icon beside its label — and never exceeds the text's
     // own line height, so it stays visually anchored to the title regardless of size.
+    // (Cap height read as a glyph half the text's height once the icon's own padding
+    // was subtracted.)
     let resolvedIcon = icon?.tinted(resolvedTextColor)
-    let iconSide = resolvedIcon != nil ? min(ceil(font.capHeight), ceil(textSize.height)) : 0
+    let iconSide = resolvedIcon != nil ? min(ceil(font.pointSize * Self.iconScale), ceil(textSize.height)) : 0
     let iconLeading = resolvedIcon != nil ? iconSide + iconTextSpacing : 0
 
     let totalSize = CGSize(
