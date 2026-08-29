@@ -72,9 +72,27 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
     /// Whether tapping a table expands it to reveal the copy/download action buttons.
     /// Off by default: the buttons are chat chrome most hosts don't want.
     public let showsActionButtons: Bool
+    /// Whether a vertical divider separates neighbouring columns. Off gives the
+    /// row-separators-only look of an HTML `prose` table.
+    public let showsColumnDividers: Bool
+    /// Whether the table is outlined by a rounded border.
+    public let showsOuterBorder: Bool
+    /// Whether header cells render in `textFonts.bold`, like an HTML `th`.
+    public let boldsHeader: Bool
 
     /// Create a table style with the supplied fonts and color palette.
-    public init(textFonts: TextFonts, headerTextColor: Color, regularTextColor: Color, headerBackgroundColor: Color, borderColor: Color, actionButtonColor: Color, showsActionButtons: Bool = false) {
+    public init(
+      textFonts: TextFonts,
+      headerTextColor: Color,
+      regularTextColor: Color,
+      headerBackgroundColor: Color,
+      borderColor: Color,
+      actionButtonColor: Color,
+      showsActionButtons: Bool = false,
+      showsColumnDividers: Bool = true,
+      showsOuterBorder: Bool = true,
+      boldsHeader: Bool = false
+    ) {
       self.textFonts = textFonts
       self.headerTextColor = headerTextColor
       self.regularTextColor = regularTextColor
@@ -82,6 +100,9 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
       self.borderColor = borderColor
       self.actionButtonColor = actionButtonColor
       self.showsActionButtons = showsActionButtons
+      self.showsColumnDividers = showsColumnDividers
+      self.showsOuterBorder = showsOuterBorder
+      self.boldsHeader = boldsHeader
     }
   }
 
