@@ -49,13 +49,16 @@ extension BlockMarkup {
            let attachment = InlineCitationAttachment(citationData: attachmentData, citationConfig: config.citationConfig) {
           let attachmentString = NSMutableAttributedString(attachment: attachment)
 
-          // Add link attribute for accessibility activation (space key)
-          let url = attachmentData.url
-          attachmentString.addAttribute(
-            .link,
-            value: url,
-            range: NSRange(location: 0, length: attachmentString.length)
-          )
+          // Add link attribute for accessibility activation (space key). An inert
+          // citation is a chip, not a link: no attribute, so a screen reader does not
+          // announce a link that leads nowhere.
+          if !attachmentData.isInert {
+            attachmentString.addAttribute(
+              .link,
+              value: attachmentData.url,
+              range: NSRange(location: 0, length: attachmentString.length)
+            )
+          }
 
           // Apply baseline offset to the attachment using the font from config, plus any
           // host-supplied correction for a chip taller than the surrounding line box.

@@ -72,6 +72,8 @@ class ParagraphUIView: UITextView {
     super.traitCollectionDidChange(previousTraitCollection)
     if traitCollection.userInterfaceStyle != previousTraitCollection?.userInterfaceStyle {
       AppAppearance.update(style: traitCollection.userInterfaceStyle)
+      // Chip colours are resolved into CGColors at draw time; re-resolve for the new appearance.
+      updateInlineCodeChips()
     }
   }
 
@@ -97,6 +99,90 @@ class ParagraphUIView: UITextView {
       invalidateCachedSize()
     }
     invalidateIntrinsicContentSize()
+    updateInlineCodeChips()
+  }
+
+  // MARK: - Inline code chips
+
+  /// Hosts one shape layer per inline code chip (`.inlineCodeChip` runs), beneath the text
+  /// so the run's glyphs paint over the chip's fill and border. TextKit's own run background
+  /// is square and borderless; the chip is drawn from the run's laid-out segment frames instead.
+  private let inlineCodeChipLayer = CALayer()
+
+  /// The chip shapes currently drawn, in text order (tests read these back).
+  var inlineCodeChipShapes: [CAShapeLayer] {
+    (inlineCodeChipLayer.sublayers ?? []).compactMap { $0 as? CAShapeLayer }
+  }
+
+  private func updateInlineCodeChips() {
+    inlineCodeChipLayer.sublayers?.forEach { $0.removeFromSuperlayer() }
+    let text: NSAttributedString = attributedText
+    guard text.length > 0 else { return }
+    var chips: [(NSRange, InlineCodeChipAttribute)] = []
+    text.enumerateAttribute(.inlineCodeChip, in: NSRange(location: 0, length: text.length)) { value, range, _ in
+      if let style = value as? InlineCodeChipAttribute { chips.append((range, style)) }
+    }
+    guard !chips.isEmpty else { return }
+
+    CATransaction.begin()
+    CATransaction.setDisableActions(true)
+    inlineCodeChipLayer.frame = bounds
+    for (range, style) in chips {
+      for rect in segmentRects(for: range) {
+        // Web `px-0.5`: the chip reaches a little past the glyphs on each side; a hair
+        // inside the line box vertically so neighbouring lines' chips never touch.
+        let chipRect = rect
+          .insetBy(dx: -InlineCodeChipAttribute.horizontalPadding, dy: 0.5)
+          .offsetBy(dx: textContainerInset.left, dy: textContainerInset.top)
+        let shape = CAShapeLayer()
+        shape.path = UIBezierPath(roundedRect: chipRect, cornerRadius: style.cornerRadius).cgPath
+        shape.fillColor = style.fillColor.resolvedColor(with: traitCollection).cgColor
+        shape.strokeColor = style.borderColor.resolvedColor(with: traitCollection).cgColor
+        shape.lineWidth = 1
+        inlineCodeChipLayer.addSublayer(shape)
+      }
+    }
+    CATransaction.commit()
+  }
+
+  /// The laid-out rectangles a character range occupies (one per line it spans), in text
+  /// container coordinates. TextKit 2 when the view has it; TextKit 1 otherwise. TextKit 2
+  /// may report a single line's run as several segments, so segments on one line are merged.
+  private func segmentRects(for range: NSRange) -> [CGRect] {
+    Self.mergingRectsPerLine(rawSegmentRects(for: range))
+  }
+
+  /// Unions rects that share a line (same vertical extent) into one, keeping line order.
+  static func mergingRectsPerLine(_ rects: [CGRect]) -> [CGRect] {
+    var merged: [CGRect] = []
+    for rect in rects {
+      if let last = merged.last, abs(last.midY - rect.midY) < 0.5 {
+        merged[merged.count - 1] = last.union(rect)
+      } else {
+        merged.append(rect)
+      }
+    }
+    return merged
+  }
+
+  private func rawSegmentRects(for range: NSRange) -> [CGRect] {
+    var rects: [CGRect] = []
+    if let layoutManager = textLayoutManager, let contentManager = layoutManager.textContentManager,
+       let start = contentManager.location(contentManager.documentRange.location, offsetBy: range.location),
+       let end = contentManager.location(start, offsetBy: range.length),
+       let textRange = NSTextRange(location: start, end: end) {
+      layoutManager.ensureLayout(for: textRange)
+      layoutManager.enumerateTextSegments(in: textRange, type: .standard, options: [.rangeNotRequired]) { _, frame, _, _ in
+        rects.append(frame)
+        return true
+      }
+      return rects
+    }
+    let glyphs = layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+    layoutManager.enumerateEnclosingRects(
+      forGlyphRange: glyphs, withinSelectedGlyphRange: NSRange(location: NSNotFound, length: 0), in: textContainer
+    ) { rect, _ in rects.append(rect) }
+    return rects
   }
 
   func setParagraphContents(_ newContents: NSMutableAttributedString, lineSpacing: CGFloat? = nil, animatedByWord: Bool) {
@@ -130,6 +216,7 @@ class ParagraphUIView: UITextView {
     configureAccessibility(for: finalString)
 
     invalidateIntrinsicContentSize()
+    setNeedsLayout()
 
     let newContentLength = attributedText.length - oldAttributedString.length
 
@@ -199,6 +286,9 @@ class ParagraphUIView: UITextView {
     // When this is empty, UITextView will not override the styles set by attributes
     self.linkTextAttributes = [:]
 
+    // Beneath every subview's layer (the text canvas included), so chips sit under the glyphs.
+    layer.insertSublayer(inlineCodeChipLayer, at: 0)
+
     // Disable drag interaction to prevent crashes related to dragging from a view that might disappear
     textDragInteraction?.isEnabled = false
   }
@@ -225,10 +315,12 @@ class ParagraphUIView: UITextView {
         // Add to accessibility label
         labelComponents.append(citationData.accessibilityLabel)
 
-        // Create accessibility action for citations
-        let actionName = String.openCitation(citationLabel: citationData.accessibilityLabel)
-        let action = makeAccessibilityAction(name: actionName, url: citationData.url)
-        actions.append(action)
+        // Create accessibility action for citations; an inert chip offers none.
+        if !citationData.isInert {
+          let actionName = String.openCitation(citationLabel: citationData.accessibilityLabel)
+          let action = makeAccessibilityAction(name: actionName, url: citationData.url)
+          actions.append(action)
+        }
       } else {
         // Add the regular text for this range
         let substring = attributedString.attributedSubstring(from: range)
@@ -241,8 +333,12 @@ class ParagraphUIView: UITextView {
 
     let accessibilityLabel = labelComponents.isEmpty ? nil : labelComponents.joined()
 
-    // Return nil if no attachments were found
-    guard !actions.isEmpty else { return nil }
+    // Nothing but plain text: let the caller fall back to the string itself. A citation
+    // (even an inert one, which offers no action) needs the composed label so the chip
+    // reads as its title rather than the attachment placeholder character.
+    let hasCitation = attributedString.attribute(.attachment, at: 0, longestEffectiveRange: nil, in: fullRange) != nil
+      || labelComponents.joined() != attributedString.string
+    guard !actions.isEmpty || hasCitation else { return nil }
 
     return AccessibilityContent(label: accessibilityLabel, actions: actions)
   }
@@ -349,7 +445,7 @@ extension ParagraphUIView: UITextViewDelegate {
   func textView(_ textView: UITextView, shouldInteractWith textAttachment: NSTextAttachment, in characterRange: NSRange) -> Bool {
     // Check if this is our custom citation attachment with pre-decoded data
     if let citationAttachment = textAttachment as? InlineCitationAttachment,
-       let citationData = citationAttachment.citationData {
+       let citationData = citationAttachment.citationData, !citationData.isInert {
       self.onUrlTap(citationData.url)
       return false
     }

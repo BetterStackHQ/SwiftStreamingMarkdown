@@ -153,9 +153,22 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
     public let codeBackgroundColor: Color
     /// Underline color drawn beneath inline code spans.
     public let codeUnderlineColor: Color
+    /// Border drawn around an inline code chip. `.clear` (the default) draws none.
+    public let codeBorderColor: Color
+    /// Corner radius of an inline code chip. With a radius or a visible border the
+    /// span is drawn as one rounded, bordered chip behind the run (`codeBackgroundColor`
+    /// as its fill) instead of TextKit's square per-glyph background.
+    public let codeCornerRadius: CGFloat
 
-    /// Create an inline text style with the supplied fonts and color palette.
-    public init(boldTextColor: Color, linkTextFont: MDFont, linkTextColor: Color, linkUnderlineStyle: NSUnderlineStyle = [], codeTextFont: MDFont, codeTextColor: Color, codeBackgroundColor: Color, codeUnderlineColor: Color) {
+    /// Whether inline code renders as a rounded/bordered chip rather than a plain run background.
+    var drawsCodeChip: Bool { codeCornerRadius > 0 || codeBorderColor != .clear }
+
+    /// Create an inline text style with the supplied fonts and color palette. Inline code
+    /// renders as a rounded, bordered chip when `codeCornerRadius` or `codeBorderColor` is
+    /// set (see `drawsCodeChip`); by default it keeps TextKit's plain run background.
+    public init(boldTextColor: Color, linkTextFont: MDFont, linkTextColor: Color, linkUnderlineStyle: NSUnderlineStyle = [], codeTextFont: MDFont, codeTextColor: Color, codeBackgroundColor: Color, codeUnderlineColor: Color, codeBorderColor: Color = .clear, codeCornerRadius: CGFloat = 0) {
+      self.codeBorderColor = codeBorderColor
+      self.codeCornerRadius = codeCornerRadius
       self.boldTextColor = boldTextColor
       self.linkTextFont = linkTextFont
       self.linkTextColor = linkTextColor
