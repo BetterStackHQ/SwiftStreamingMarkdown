@@ -65,6 +65,50 @@ struct InlineCitationAttachmentTests {
     #expect(iconizedImage.size.height == plainImage.size.height, "icon must fit inside the existing line height")
   }
 
+  /// The icon hugs the capsule: its inset from the chip's leading edge equals its inset
+  /// from the top and bottom edges, so a round mark sits concentric with the capsule end.
+  @Test("A leading icon is inset from the chip's left edge exactly as far as from its top and bottom")
+  func iconHugsTheCapsuleEqually() {
+    guard let data = makeCitationData(),
+          let iconized = InlineCitationAttachment(
+            citationData: data,
+            citationConfig: makeConfig(citationImage: { [icon = testIcon()] _ in icon })
+          ),
+          let image = iconized.image, let cg = image.cgImage
+    else {
+      Issue.record("Failed to build citation attachment")
+      return
+    }
+    // The test icon is a solid black square on a grey chip: its opaque-black bounds are
+    // the icon rect, in pixels.
+    let width = cg.width, height = cg.height
+    var pixels = [UInt8](repeating: 0, count: width * height * 4)
+    let space = CGColorSpaceCreateDeviceRGB()
+    guard let ctx = CGContext(
+      data: &pixels, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+      space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { Issue.record("no bitmap context"); return }
+    ctx.draw(cg, in: CGRect(x: 0, y: 0, width: width, height: height))
+    var minX = width, maxX = -1, minY = height, maxY = -1
+    for y in 0..<height {
+      for x in 0..<width {
+        let i = (y * width + x) * 4
+        let isBlack = pixels[i] < 30 && pixels[i + 1] < 30 && pixels[i + 2] < 30 && pixels[i + 3] > 200
+        if isBlack {
+          minX = min(minX, x); maxX = max(maxX, x); minY = min(minY, y); maxY = max(maxY, y)
+        }
+      }
+    }
+    #expect(maxX >= 0, "the black test icon was not drawn")
+    let left = minX
+    let top = minY
+    let bottom = height - 1 - maxY
+    // Bitmap rows are top-down here (CGContext.draw flips), so top/bottom are symmetric
+    // either way; the leading inset must match them within a pixel of rounding.
+    #expect(abs(left - top) <= 1, "left inset \(left)px vs top inset \(top)px")
+    #expect(abs(left - bottom) <= 1, "left inset \(left)px vs bottom inset \(bottom)px")
+  }
+
   @Test("A citationImage closure that declines a specific citation renders it exactly like no closure at all")
   func closureReturningNilOptsOutPerCitation() {
     guard let plainData = makeCitationData(), let declinedData = makeCitationData(),

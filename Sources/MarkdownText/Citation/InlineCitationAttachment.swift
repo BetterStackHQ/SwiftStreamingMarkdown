@@ -141,17 +141,20 @@ final class InlineCitationAttachment: NSTextAttachment {
     // was subtracted.)
     let resolvedIcon = icon?.tinted(resolvedTextColor)
     let iconSide = resolvedIcon != nil ? min(ceil(font.pointSize * Self.iconScale), ceil(textSize.height)) : 0
+    // The icon hugs the capsule: its inset from the chip's leading edge equals its inset
+    // from the top and bottom, so a round mark sits concentric with the capsule's end
+    // instead of floating `textInsets.left` further in (an icon fills the text height,
+    // so that inset is `textInsets.top` plus whatever the icon leaves of the line).
+    let iconInsetY = textInsets.top + (ceil(textSize.height) - iconSide) / 2
+    let iconLeadingInset = resolvedIcon != nil ? iconInsetY : textInsets.left
     let iconLeading = resolvedIcon != nil ? iconSide + iconTextSpacing : 0
 
     let totalSize = CGSize(
-      width: ceil(textSize.width) + iconLeading + textInsets.left + textInsets.right,
+      width: ceil(textSize.width) + iconLeading + iconLeadingInset + textInsets.right,
       height: ceil(textSize.height) + textInsets.top + textInsets.bottom
     )
-    let iconRect = CGRect(
-      x: textInsets.left, y: textInsets.top + (ceil(textSize.height) - iconSide) / 2,
-      width: iconSide, height: iconSide
-    )
-    let textRect = CGRect(x: textInsets.left + iconLeading, y: textInsets.top,
+    let iconRect = CGRect(x: iconLeadingInset, y: iconInsetY, width: iconSide, height: iconSide)
+    let textRect = CGRect(x: iconLeadingInset + iconLeading, y: textInsets.top,
                           width: ceil(textSize.width), height: ceil(textSize.height))
 
     // Render the citation pill image
