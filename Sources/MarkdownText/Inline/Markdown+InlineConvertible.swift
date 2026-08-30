@@ -178,11 +178,22 @@ extension Markdown.InlineCode: InlineConvertible {
       }
     }
     var container = attributeContainer
-    container[.font] = config.inlineStyle.codeTextFont
-    container[.foregroundColor] = MDColor(config.inlineStyle.codeTextColor)
-    container[.backgroundColor] = MDColor(config.inlineStyle.codeBackgroundColor)
+    let style = config.inlineStyle
+    container[.font] = style.codeTextFont
+    container[.foregroundColor] = MDColor(style.codeTextColor)
+    if style.drawsCodeChip {
+      // A rounded/bordered chip is painted behind the run by the paragraph view; the
+      // square TextKit background would show at the chip's corners, so it is not set.
+      container[.inlineCodeChip] = InlineCodeChipAttribute(
+        fillColor: MDColor(style.codeBackgroundColor),
+        borderColor: MDColor(style.codeBorderColor),
+        cornerRadius: style.codeCornerRadius
+      )
+    } else {
+      container[.backgroundColor] = MDColor(style.codeBackgroundColor)
+    }
     container[.underlineStyle] =  NSUnderlineStyle.patternDot.rawValue
-    container[.underlineColor] = MDColor(config.inlineStyle.codeUnderlineColor)
+    container[.underlineColor] = MDColor(style.codeUnderlineColor)
     return NSMutableAttributedString(string: codeContent).mergingAttributes(container)
   }
 }

@@ -24,6 +24,11 @@ public struct CitationCoder: Hashable, Sendable {
   /// Name of the query param that carries the citation's accessibility label
   /// (typically a longer, more descriptive form of the title).
   public let citationA11yTextQueryParam: String
+  /// Name of the optional query param that marks a citation as inert: it renders as the
+  /// same chip but is not a link — no `.link` attribute, no tap or accessibility action
+  /// (a mention that resolves nowhere, like the web's plain `<span>` chip). `nil` means the
+  /// wire format has no inert form and every citation is a link.
+  public let citationInertQueryParam: String?
 
   /// Create a coder with the supplied marker string and query-parameter names.
   /// All four arguments together define the on-the-wire citation format.
@@ -33,10 +38,29 @@ public struct CitationCoder: Hashable, Sendable {
     citationTextQueryParam: String,
     citationA11yTextQueryParam: String
   ) {
+    self.init(
+      citationMarker: citationMarker,
+      citationMarkerQueryParam: citationMarkerQueryParam,
+      citationTextQueryParam: citationTextQueryParam,
+      citationA11yTextQueryParam: citationA11yTextQueryParam,
+      citationInertQueryParam: nil
+    )
+  }
+
+  /// Create a coder that also recognises an inert marker query param (see
+  /// `citationInertQueryParam`); the param's presence with value `1` or `true` marks the chip inert.
+  public init(
+    citationMarker: String,
+    citationMarkerQueryParam: String,
+    citationTextQueryParam: String,
+    citationA11yTextQueryParam: String,
+    citationInertQueryParam: String?
+  ) {
     self.citationMarker = citationMarker
     self.citationMarkerQueryParam = citationMarkerQueryParam
     self.citationTextQueryParam = citationTextQueryParam
     self.citationA11yTextQueryParam = citationA11yTextQueryParam
+    self.citationInertQueryParam = citationInertQueryParam
   }
 
   // MARK: - Detection
@@ -73,11 +97,15 @@ public struct CitationCoder: Hashable, Sendable {
     else {
       return nil
     }
+    let isInert = citationInertQueryParam.map { param in
+      queryItems.contains { $0.name == param && ($0.value == "1" || $0.value == "true") }
+    } ?? false
     return InlineAttachmentData(
       type: .citation,
       title: title,
       accessibilityLabel: a11yLabel,
-      url: url
+      url: url,
+      isInert: isInert
     )
   }
 }
