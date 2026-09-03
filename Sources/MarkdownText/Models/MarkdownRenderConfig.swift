@@ -160,13 +160,42 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
     /// as its fill) instead of TextKit's square per-glyph background.
     public let codeCornerRadius: CGFloat
 
+    /// Link runs whose destination uses one of these URL schemes (lowercase, no `:`)
+    /// take that scheme's font/colour/underline instead of the shared `linkText*` slots.
+    /// Lets a host render one link kind (an inert `@mention` on a private scheme) apart
+    /// from real `https` links inside the same document.
+    public let linkSchemeStyles: [String: LinkRunStyle]
+
+    /// The font, colour and underline of one link run — see `linkSchemeStyles`.
+    public struct LinkRunStyle: Hashable, Sendable {
+      public let font: MDFont
+      public let color: Color
+      public let underlineStyle: NSUnderlineStyle
+
+      public init(font: MDFont, color: Color, underlineStyle: NSUnderlineStyle = []) {
+        self.font = font
+        self.color = color
+        self.underlineStyle = underlineStyle
+      }
+    }
+
+    /// The style a link to `url` renders with: its scheme's override when one is
+    /// registered, otherwise the shared link slots.
+    func linkRunStyle(for url: URL) -> LinkRunStyle {
+      if let scheme = url.scheme?.lowercased(), let override = linkSchemeStyles[scheme] {
+        return override
+      }
+      return LinkRunStyle(font: linkTextFont, color: linkTextColor, underlineStyle: linkUnderlineStyle)
+    }
+
     /// Whether inline code renders as a rounded/bordered chip rather than a plain run background.
     var drawsCodeChip: Bool { codeCornerRadius > 0 || codeBorderColor != .clear }
 
     /// Create an inline text style with the supplied fonts and color palette. Inline code
     /// renders as a rounded, bordered chip when `codeCornerRadius` or `codeBorderColor` is
     /// set (see `drawsCodeChip`); by default it keeps TextKit's plain run background.
-    public init(boldTextColor: Color, linkTextFont: MDFont, linkTextColor: Color, linkUnderlineStyle: NSUnderlineStyle = [], codeTextFont: MDFont, codeTextColor: Color, codeBackgroundColor: Color, codeUnderlineColor: Color, codeBorderColor: Color = .clear, codeCornerRadius: CGFloat = 0) {
+    public init(boldTextColor: Color, linkTextFont: MDFont, linkTextColor: Color, linkUnderlineStyle: NSUnderlineStyle = [], codeTextFont: MDFont, codeTextColor: Color, codeBackgroundColor: Color, codeUnderlineColor: Color, codeBorderColor: Color = .clear, codeCornerRadius: CGFloat = 0, linkSchemeStyles: [String: LinkRunStyle] = [:]) {
+      self.linkSchemeStyles = linkSchemeStyles
       self.codeBorderColor = codeBorderColor
       self.codeCornerRadius = codeCornerRadius
       self.boldTextColor = boldTextColor

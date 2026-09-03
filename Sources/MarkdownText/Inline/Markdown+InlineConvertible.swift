@@ -120,10 +120,11 @@ extension Markdown.Link: InlineConvertible {
       return NSMutableAttributedString(string: "")
     } else {
       // Is a real link, provided as markdown
+      let style = config.inlineStyle.linkRunStyle(for: url)
       container[.link] = url
-      container[.font] = config.inlineStyle.linkTextFont
-      container[.foregroundColor] = MDColor(config.inlineStyle.linkTextColor)
-      container[.underlineStyle] = config.inlineStyle.linkUnderlineStyle.rawValue
+      container[.font] = style.font
+      container[.foregroundColor] = MDColor(style.color)
+      container[.underlineStyle] = style.underlineStyle.rawValue
       return buildAttributedString()
     }
   }
