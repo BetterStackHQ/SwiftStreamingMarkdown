@@ -306,12 +306,17 @@ class ParagraphUIView: UITextView {
   private func generateAccessibilityContent(from attributedString: NSAttributedString) -> AccessibilityContent? {
     var labelComponents: [String] = []
     var actions: [UIAccessibilityCustomAction] = []
+    var hasCitation = false
+    // An empty paragraph (a streaming placeholder cleared to "") has nothing to enumerate
+    // and no index 0 to peek at; every range below comes from this one enumeration.
+    guard attributedString.length > 0 else { return nil }
     let fullRange = NSRange(location: 0, length: attributedString.length)
 
     attributedString.enumerateAttributes(in: fullRange, options: []) { attrs, range, _ in
       // Handle citation attachments
       if let attachment = attrs[.attachment] as? InlineCitationAttachment,
          let citationData = attachment.citationData {
+        hasCitation = true
         // Add to accessibility label
         labelComponents.append(citationData.accessibilityLabel)
 
@@ -336,8 +341,6 @@ class ParagraphUIView: UITextView {
     // Nothing but plain text: let the caller fall back to the string itself. A citation
     // (even an inert one, which offers no action) needs the composed label so the chip
     // reads as its title rather than the attachment placeholder character.
-    let hasCitation = attributedString.attribute(.attachment, at: 0, longestEffectiveRange: nil, in: fullRange) != nil
-      || labelComponents.joined() != attributedString.string
     guard !actions.isEmpty || hasCitation else { return nil }
 
     return AccessibilityContent(label: accessibilityLabel, actions: actions)

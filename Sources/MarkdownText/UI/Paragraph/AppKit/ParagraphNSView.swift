@@ -211,6 +211,8 @@ class ParagraphNSView: NSTextView {
   private func generateAccessibilityContent(from attributedString: NSAttributedString) -> (label: String?, actions: [() -> Void])? {
     var labelComponents: [String] = []
     var hasAttachments = false
+    // Nothing to enumerate in an empty paragraph; never index into a zero-length string.
+    guard attributedString.length > 0 else { return nil }
     let fullRange = NSRange(location: 0, length: attributedString.length)
 
     attributedString.enumerateAttributes(in: fullRange, options: []) { attrs, range, _ in
