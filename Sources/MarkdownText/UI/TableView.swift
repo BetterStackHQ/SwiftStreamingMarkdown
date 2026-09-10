@@ -83,7 +83,12 @@ struct TableView: View {
   @ViewBuilder
   var gridView: some View {
     VStack(alignment: .leading, spacing: 0) {
-      TableLayout(columnCount: headings.count, columnMaxWidths: self.actualColumnMaxWidths()) {
+      TableLayout(
+        columnCount: headings.count,
+        columnMaxWidths: self.actualColumnMaxWidths(),
+        // Stretch to the viewport only once its width is known (`scrollWidth` starts at 0).
+        fillWidth: config.tableStyle.stretchesToAvailableWidth ? scrollWidth : 0
+      ) {
         ForEach(0..<headings.count, id: \.self) { colIdx in
           headerView(colIdx: colIdx)
         }
@@ -284,8 +289,24 @@ struct TableLayout: Layout {
 
   let columnCount: Int
   let columnMaxWidths: [CGFloat]
+  /// Viewport width to fill when the table is narrower than it. 0 disables filling, keeping
+  /// the natural content-hugging widths (the table then hugs the left, scrolling if wider).
+  var fillWidth: CGFloat = 0
 
   private let defaultRowHeight: CGFloat = 44
+
+  /// Widths after filling the viewport: when the columns' natural total is narrower than
+  /// `fillWidth`, the remainder is added to the last column (the "value" column of a
+  /// key/value table). A `fillWidth` of 0, or a table already at least that wide, is
+  /// returned unchanged so a wide table still scrolls horizontally.
+  static func filledColumnWidths(_ widths: [CGFloat], fillWidth: CGFloat) -> [CGFloat] {
+    guard let last = widths.indices.last else { return widths }
+    let naturalWidth = widths.reduce(0, +)
+    guard fillWidth > naturalWidth else { return widths }
+    var filled = widths
+    filled[last] += fillWidth - naturalWidth
+    return filled
+  }
 
   func makeCache(subviews: Subviews) -> CacheData {
     guard columnCount > 0 else { return CacheData(columnWidths: [], rowHeights: []) }
@@ -299,6 +320,10 @@ struct TableLayout: Layout {
         columnWidths[col] = min(max(columnWidths[col], size.width), columnMaxWidths[col])
       }
     }
+
+    // Grow the last column so a narrow table fills the viewport instead of leaving the
+    // right side empty; row heights below are then measured against the grown width.
+    columnWidths = Self.filledColumnWidths(columnWidths, fillWidth: fillWidth)
 
     var rowHeights = Array(repeating: CGFloat(0), count: rowCount)
     for row in 0..<rowCount {
