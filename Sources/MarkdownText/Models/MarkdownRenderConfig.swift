@@ -79,6 +79,11 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
     public let showsOuterBorder: Bool
     /// Whether header cells render in `textFonts.bold`, like an HTML `th`.
     public let boldsHeader: Bool
+    /// Whether a table narrower than its viewport stretches to fill the available
+    /// width, with the last column taking the remainder. Off by default, keeping the
+    /// content-hugging layout; a full-width host (a phone sheet) turns it on so a
+    /// short key/value table doesn't leave the right half of the screen empty.
+    public let stretchesToAvailableWidth: Bool
 
     /// Create a table style with the supplied fonts and color palette.
     public init(
@@ -91,7 +96,8 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
       showsActionButtons: Bool = false,
       showsColumnDividers: Bool = true,
       showsOuterBorder: Bool = true,
-      boldsHeader: Bool = false
+      boldsHeader: Bool = false,
+      stretchesToAvailableWidth: Bool = false
     ) {
       self.textFonts = textFonts
       self.headerTextColor = headerTextColor
@@ -103,6 +109,7 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
       self.showsColumnDividers = showsColumnDividers
       self.showsOuterBorder = showsOuterBorder
       self.boldsHeader = boldsHeader
+      self.stretchesToAvailableWidth = stretchesToAvailableWidth
     }
   }
 
