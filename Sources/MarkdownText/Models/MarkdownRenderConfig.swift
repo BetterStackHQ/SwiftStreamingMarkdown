@@ -233,7 +233,11 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
     /// `nil` to render that citation without an icon. The image is composited at the
     /// chip's font size and tinted to match `textColor` in each appearance, so a
     /// template/alpha-mask image (no baked-in color) gives the cleanest result.
-    public let citationImage: (@Sendable (_ destination: String) -> MDImage?)?
+    ///
+    /// `@MainActor`: the chip is rasterized on the main thread (see
+    /// `InlineCitationAttachment`), and this closure is invoked as part of that pass, so a
+    /// host may read its main-actor-owned image caches here without hopping actors.
+    public let citationImage: (@MainActor @Sendable (_ destination: String) -> MDImage?)?
     /// Points added to the citation attachment's `.baselineOffset`, on top of the
     /// existing `font.descender` correction. The descender alone only accounts for the
     /// glyph descender space, not for a chip taller than the surrounding line box — a
@@ -257,7 +261,7 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
       font: MDFont,
       textColor: Color,
       backgroundColor: Color,
-      citationImage: (@Sendable (_ destination: String) -> MDImage?)? = nil,
+      citationImage: (@MainActor @Sendable (_ destination: String) -> MDImage?)? = nil,
       citationBaselineAdjustment: CGFloat = 0
     ) {
       self.isEnabled = isEnabled

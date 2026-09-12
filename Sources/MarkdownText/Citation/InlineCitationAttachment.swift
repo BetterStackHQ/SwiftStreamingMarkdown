@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import SwiftUI
 #if canImport(UIKit)
 import UIKit
 #elseif canImport(AppKit)
@@ -11,6 +12,18 @@ import AppKit
 #endif
 import UniformTypeIdentifiers
 
+/// The inline citation chip.
+///
+/// **Threading invariant:** the chip is a rasterized bitmap (UIKit/TextKit drawing), and
+/// none of that drawing may happen off the main actor. The attachment is *built* on the
+/// parser's background executor during `document.convert(...)`, so `init` stores only value
+/// styling and the (`@MainActor`) host icon closure and creates **no** `UIImage`/`UIColor`
+/// and does **no** TextKit work. The light/dark preview bitmaps are rendered lazily the
+/// first time TextKit asks for the image (`image` getter → `image(forBounds:…)`), which
+/// happens on the main thread during layout, and then memoized. This confines every
+/// `UIGraphicsImageRenderer` / `NSString.draw` / `UIImage` create-and-release to the main
+/// actor and fixes the over-release crash that came from rasterizing on the cooperative
+/// pool (ios-app #429). See `renderPreviewsIfNeeded()`.
 final class InlineCitationAttachment: NSTextAttachment {
   /// The decoded citation data - available immediately without JSON parsing
   private(set) var citationData: InlineAttachmentData?
@@ -18,17 +31,25 @@ final class InlineCitationAttachment: NSTextAttachment {
   /// Styling resolved from the active `CitationConfig`. Exposed so the live
   /// label provider can mirror the same look as the precomputed preview image.
   let font: MDFont
-  let textColor: MDColor
-  let backgroundColor: MDColor
-  /// Untinted leading icon from `CitationConfig.citationImage`, or nil for no icon.
-  /// Tinted to match `textColor` per-appearance when the preview images are rendered.
-  let icon: MDImage?
+  let textColor: Color
+  let backgroundColor: Color
+  /// Host closure that supplies the optional leading icon. `@MainActor` because it reads
+  /// main-actor-owned image caches on the host side; only ever invoked from the main-thread
+  /// rasterization pass (`renderPreviewsIfNeeded`).
+  private let citationImageProvider: (@MainActor @Sendable (_ destination: String) -> MDImage?)?
+
+  /// Untinted leading icon resolved from `CitationConfig.citationImage`, or nil for no icon.
+  /// Resolved lazily on the main thread when the previews are rendered, then tinted to match
+  /// `textColor` per-appearance inside each preview bitmap.
+  private(set) var icon: MDImage?
 
   // MARK: - Precomputed preview images
 
   private var lightPreviewImage: MDImage?
   private var darkPreviewImage: MDImage?
   private var assignedImage: MDImage?
+  /// Whether `renderPreviewsIfNeeded()` has already run (once per instance).
+  private var didRenderPreviews = false
 
   // MARK: - Shared Layout
 
@@ -43,6 +64,7 @@ final class InlineCitationAttachment: NSTextAttachment {
   #if canImport(UIKit)
   override var image: UIImage? {
     get {
+      renderPreviewsIfNeeded()
       if let assignedImage { return assignedImage }
       let app = AppAppearance.$current.read({ $0 })
       switch app {
@@ -55,6 +77,7 @@ final class InlineCitationAttachment: NSTextAttachment {
   #elseif canImport(AppKit)
   override var image: NSImage? {
     get {
+      renderPreviewsIfNeeded()
       if let assignedImage { return assignedImage }
       let app = AppAppearance.$current.read({ $0 })
       switch app {
@@ -66,33 +89,29 @@ final class InlineCitationAttachment: NSTextAttachment {
   }
   #endif
 
-  /// Called during markdown parsing (background queue). Rasterizes both
-  /// light/dark previews here so the getter never does work on the main thread.
+  /// TextKit's per-fragment image lookup. Overridden so both TextKit 1 and TextKit 2 route
+  /// through the lazy main-thread rasterization above (the default implementation returns
+  /// `self.image`, but we make the dependency explicit).
+  override func image(
+    forBounds imageBounds: CGRect,
+    textContainer: NSTextContainer?,
+    characterIndex charIndex: Int
+  ) -> MDImage? {
+    return image
+  }
+
+  /// Called during markdown parsing (background executor). Stores only value styling and the
+  /// host icon closure - no UIKit/TextKit object is created here. The preview bitmaps are
+  /// rendered lazily on the main thread; see `renderPreviewsIfNeeded()`.
   init(payload: Data, citationConfig: MarkdownRenderConfig.CitationConfig) {
     let decoded = try? JSONDecoder().decode(InlineAttachmentData.self, from: payload)
     let citationData = (decoded?.type == .citation) ? decoded : nil
     self.citationData = citationData
 
     self.font = citationConfig.font
-    self.textColor = MDColor(citationConfig.textColor)
-    self.backgroundColor = MDColor(citationConfig.backgroundColor)
-    self.icon = citationData.flatMap { citationConfig.citationImage?($0.url.absoluteString) }
-
-    if let title = citationData?.title {
-      self.lightPreviewImage = Self.renderCitationImage(
-        title: title, font: self.font, icon: self.icon,
-        textColor: self.textColor, backgroundColor: self.backgroundColor,
-        appearance: .light
-      )
-      self.darkPreviewImage = Self.renderCitationImage(
-        title: title, font: self.font, icon: self.icon,
-        textColor: self.textColor, backgroundColor: self.backgroundColor,
-        appearance: .dark
-      )
-    } else {
-      self.lightPreviewImage = nil
-      self.darkPreviewImage = nil
-    }
+    self.textColor = citationConfig.textColor
+    self.backgroundColor = citationConfig.backgroundColor
+    self.citationImageProvider = citationConfig.citationImage
 
     super.init(data: payload, ofType: UTType.url.identifier)
   }
@@ -112,6 +131,38 @@ final class InlineCitationAttachment: NSTextAttachment {
 
   // MARK: - Preview Image Rendering
 
+  /// Render the light/dark preview bitmaps on the main thread, once. Every UIKit/TextKit
+  /// object (the host icon, the tinted copy, the `UIGraphicsImageRenderer` output) is created
+  /// and released here, on the main actor, so nothing crosses the cooperative pool. The
+  /// `dispatchPrecondition` makes the contract enforceable in tests and loud in debug; the
+  /// getter that calls this is only ever hit during main-thread TextKit layout.
+  private func renderPreviewsIfNeeded() {
+    guard !didRenderPreviews else { return }
+    dispatchPrecondition(condition: .onQueue(.main))
+    didRenderPreviews = true
+
+    guard let title = citationData?.title else { return }
+
+    // We are on the main queue (asserted above); adopt main-actor isolation so the
+    // `@MainActor` host closure can be invoked and main-actor caches read safely.
+    MainActor.assumeIsolated {
+      let resolvedIcon = citationData.flatMap { citationImageProvider?($0.url.absoluteString) }
+      self.icon = resolvedIcon
+
+      self.lightPreviewImage = Self.renderCitationImage(
+        title: title, font: self.font, icon: resolvedIcon,
+        textColor: MDColor(self.textColor), backgroundColor: MDColor(self.backgroundColor),
+        appearance: .light
+      )
+      self.darkPreviewImage = Self.renderCitationImage(
+        title: title, font: self.font, icon: resolvedIcon,
+        textColor: MDColor(self.textColor), backgroundColor: MDColor(self.backgroundColor),
+        appearance: .dark
+      )
+    }
+  }
+
+  @MainActor
   private static func renderCitationImage(
     title: String, font: MDFont, icon: MDImage?,
     textColor: MDColor, backgroundColor: MDColor,
