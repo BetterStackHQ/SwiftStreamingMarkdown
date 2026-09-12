@@ -13,6 +13,10 @@ import UIKit
 /// Covers `CitationConfig.citationImage`: the optional per-citation leading icon a host
 /// app can composite into the rendered chip. Structural (image geometry), not a snapshot
 /// golden — the fork ships no icon assets of its own to snapshot against.
+///
+/// `@MainActor`: reading `attachment.image`/`.icon` rasterizes the chip, which is confined
+/// to the main actor (see `InlineCitationAttachment`), so these tests read it there.
+@MainActor
 @Suite("InlineCitationAttachment citation-image Tests")
 struct InlineCitationAttachmentTests {
 
@@ -31,7 +35,7 @@ struct InlineCitationAttachmentTests {
   }
 
   private func makeConfig(
-    citationImage: (@Sendable (String) -> UIImage?)? = nil
+    citationImage: (@MainActor @Sendable (String) -> UIImage?)? = nil
   ) -> MarkdownRenderConfig.CitationConfig {
     .init(font: .systemFont(ofSize: 15), textColor: .black, backgroundColor: .gray, citationImage: citationImage)
   }
@@ -43,6 +47,8 @@ struct InlineCitationAttachmentTests {
       Issue.record("Failed to build a citation attachment")
       return
     }
+    // Rasterize (main thread) so `icon` is resolved; with no closure it stays nil.
+    _ = attachment.image
     #expect(attachment.icon == nil)
   }
 
@@ -134,14 +140,72 @@ struct InlineCitationAttachmentTests {
       return
     }
     var received: String?
-    _ = InlineCitationAttachment(
+    let attachment = InlineCitationAttachment(
       citationData: data,
       citationConfig: makeConfig(citationImage: { destination in
         received = destination
         return nil
       })
     )
+    // The closure runs as part of the (main-thread) rasterization, on first image access.
+    _ = attachment?.image
     #expect(received == data.url.absoluteString)
+  }
+
+  // MARK: - Main-thread rasterization invariant
+
+  /// Records how often, and on which thread, the host icon closure ran. `@unchecked
+  /// Sendable` because it guards its own state with a lock, so it survives the actor hop
+  /// in `buildingOffMainDoesNoRasterization`.
+  private final class ThreadRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    private var main: Bool?
+    func record() { lock.lock(); count += 1; main = Thread.isMainThread; lock.unlock() }
+    var callCount: Int { lock.lock(); defer { lock.unlock() }; return count }
+    var ranOnMain: Bool? { lock.lock(); defer { lock.unlock() }; return main }
+  }
+
+  /// The crash this fixes came from rasterizing the chip on the parser's background
+  /// executor. Building the attachment off the main actor (exactly what `convert` does)
+  /// must create no image and must not invoke the host icon closure.
+  @Test("Building a citation attachment off the main actor rasterizes nothing")
+  func buildingOffMainDoesNoRasterization() async {
+    let recorder = ThreadRecorder()
+    let citationURL = "http://example.com?citationMarker=9F742443&citationTitle=ESPN&citationA11yValue=ESPN"
+    let config = makeConfig(citationImage: { _ in recorder.record(); return nil })
+
+    let attachment = await Task.detached {
+      guard let data = CitationCoder.default.decode(linkDestination: citationURL) else {
+        return nil as InlineCitationAttachment?
+      }
+      return InlineCitationAttachment(citationData: data, citationConfig: config)
+    }.value
+
+    #expect(attachment != nil)
+    #expect(recorder.callCount == 0, "init must not invoke the host icon closure off the main actor")
+    #expect(attachment?.icon == nil, "no icon is resolved before the first main-thread draw")
+  }
+
+  /// The rasterization is deferred to first image access, which TextKit performs on the
+  /// main thread during layout — and the host icon closure runs there, on the main thread.
+  @Test("Reading the image resolves the icon on the main thread")
+  func readingImageRasterizesOnMain() {
+    let recorder = ThreadRecorder()
+    guard let data = makeCitationData(),
+          let attachment = InlineCitationAttachment(
+            citationData: data,
+            citationConfig: makeConfig(citationImage: { _ in recorder.record(); return nil })
+          ) else {
+      Issue.record("Failed to build a citation attachment")
+      return
+    }
+    #expect(recorder.callCount == 0, "no rasterization until the image is asked for")
+
+    _ = attachment.image
+
+    #expect(recorder.callCount == 1, "the chip is rasterized exactly once")
+    #expect(recorder.ranOnMain == true, "the host icon closure must run on the main thread")
   }
 
   // MARK: - citationBaselineAdjustment
