@@ -46,11 +46,64 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
     public let textFonts: TextFonts
     /// Foreground color applied to the text.
     public let textColor: Color
+    /// How an ordered list draws its item numbers. Read only when this style is the
+    /// `orderedListStyle`; every other style ignores it. Defaults to `.plain`.
+    public let orderedListMarker: OrderedListMarker
 
     /// Create a text style with the given fonts and foreground color.
-    public init(textFonts: TextFonts, textColor: Color) {
+    public init(textFonts: TextFonts, textColor: Color, orderedListMarker: OrderedListMarker = .plain) {
       self.textFonts = textFonts
       self.textColor = textColor
+      self.orderedListMarker = orderedListMarker
+    }
+  }
+
+  /// How an ordered list draws its item numbers.
+  public enum OrderedListMarker: Hashable, Sendable {
+    /// "1." in the style's bold face, beside the item.
+    case plain
+    /// The number centred in a filled, bordered, rounded square beside the item; the
+    /// item's nested blocks are indented to the item text.
+    case badge(OrderedListBadgeStyle)
+  }
+
+  /// The square an `OrderedListMarker.badge` draws its number in.
+  public struct OrderedListBadgeStyle: Hashable, Sendable {
+    /// Width and height of the square.
+    public let size: CGFloat
+    public let cornerRadius: CGFloat
+    /// The number's font.
+    public let font: MDFont
+    /// The number's color.
+    public let textColor: Color
+    public let fillColor: Color
+    public let borderColor: Color
+    public let borderWidth: CGFloat
+    /// Horizontal gap between the square and the item text.
+    public let contentSpacing: CGFloat
+    /// Vertical gap between items.
+    public let itemSpacing: CGFloat
+
+    public init(
+      size: CGFloat,
+      cornerRadius: CGFloat,
+      font: MDFont,
+      textColor: Color,
+      fillColor: Color,
+      borderColor: Color,
+      borderWidth: CGFloat = 1,
+      contentSpacing: CGFloat,
+      itemSpacing: CGFloat
+    ) {
+      self.size = size
+      self.cornerRadius = cornerRadius
+      self.font = font
+      self.textColor = textColor
+      self.fillColor = fillColor
+      self.borderColor = borderColor
+      self.borderWidth = borderWidth
+      self.contentSpacing = contentSpacing
+      self.itemSpacing = itemSpacing
     }
   }
 
