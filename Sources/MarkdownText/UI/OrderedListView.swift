@@ -12,12 +12,11 @@ struct OrderedListView: View {
   @Environment(\.markdownConfig) var config: MarkdownRenderConfig
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 8, content: {
+    let marker = config.orderedListStyle.orderedListMarker
+    VStack(alignment: .leading, spacing: marker.itemSpacing, content: {
       ForEach(0..<items.count, id: \.self) { idx in
-        HStack(alignment: .centerOfFirstLine, spacing: 11) {
-          Text(verbatim: "\(idx+1).")
-            .font(config.orderedListStyle.textFonts, bold: true)
-            .foregroundStyle(config.orderedListStyle.textColor)
+        HStack(alignment: .centerOfFirstLine, spacing: marker.contentSpacing) {
+          markerView(marker, number: idx + 1)
             .transition(.opacity)
           if let firstChild = items[idx].children.first {
             if case .paragraph(_, let contents) = firstChild {
@@ -34,10 +33,54 @@ struct OrderedListView: View {
         }
         if items[idx].children.count > 1 {
           BlockView(renderables: Array(items[idx].children.dropFirst()))
-            .padding([.leading], 0)
+            .padding([.leading], marker.nestedIndent)
         }
       }
     })
+  }
+
+  @ViewBuilder
+  private func markerView(_ marker: MarkdownRenderConfig.OrderedListMarker, number: Int) -> some View {
+    switch marker {
+    case .plain:
+      Text(verbatim: "\(number).")
+        .font(config.orderedListStyle.textFonts, bold: true)
+        .foregroundStyle(config.orderedListStyle.textColor)
+    case .badge(let badge):
+      let shape = RoundedRectangle(cornerRadius: badge.cornerRadius, style: .continuous)
+      Text(verbatim: "\(number)")
+        .font(Font(badge.font))
+        .foregroundStyle(badge.textColor)
+        .lineLimit(1)
+        .minimumScaleFactor(0.5)
+        .frame(width: badge.size, height: badge.size)
+        .background(shape.fill(badge.fillColor))
+        .overlay(shape.strokeBorder(badge.borderColor, lineWidth: badge.borderWidth))
+    }
+  }
+}
+
+extension MarkdownRenderConfig.OrderedListMarker {
+  var itemSpacing: CGFloat {
+    switch self {
+    case .plain: 8
+    case .badge(let badge): badge.itemSpacing
+    }
+  }
+
+  var contentSpacing: CGFloat {
+    switch self {
+    case .plain: 11
+    case .badge(let badge): badge.contentSpacing
+    }
+  }
+
+  /// Nested blocks line up with the item text under a badge; plain lists keep them flush.
+  var nestedIndent: CGFloat {
+    switch self {
+    case .plain: 0
+    case .badge(let badge): badge.size + badge.contentSpacing
+    }
   }
 }
 
