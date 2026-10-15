@@ -19,6 +19,7 @@ extension MarkdownRenderConfig {
       inlineStyle: inlineStyle,
       textContextMenu: textContextMenu,
       citationConfig: citationConfig,
+      inlineImageConfig: inlineImageConfig,
       codeBlockConfig: codeBlockConfig,
       blockSpacing: blockSpacing
     )
@@ -37,6 +38,7 @@ extension MarkdownRenderConfig {
       inlineStyle: inlineStyle,
       textContextMenu: textContextMenu,
       citationConfig: citationConfig,
+      inlineImageConfig: inlineImageConfig,
       codeBlockConfig: codeBlockConfig,
       blockSpacing: blockSpacing
     )
@@ -55,6 +57,7 @@ extension MarkdownRenderConfig {
       inlineStyle: inlineStyle,
       textContextMenu: textContextMenu,
       citationConfig: citationConfig,
+      inlineImageConfig: inlineImageConfig,
       codeBlockConfig: codeBlockConfig,
       blockSpacing: blockSpacing
     )
@@ -73,6 +76,7 @@ extension MarkdownRenderConfig {
       inlineStyle: inlineStyle,
       textContextMenu: textContextMenu,
       citationConfig: citationConfig,
+      inlineImageConfig: inlineImageConfig,
       codeBlockConfig: codeBlockConfig,
       blockSpacing: blockSpacing
     )
@@ -91,6 +95,7 @@ extension MarkdownRenderConfig {
       inlineStyle: inlineStyle,
       textContextMenu: textContextMenu,
       citationConfig: citationConfig,
+      inlineImageConfig: inlineImageConfig,
       codeBlockConfig: codeBlockConfig,
       blockSpacing: blockSpacing
     )
@@ -109,6 +114,7 @@ extension MarkdownRenderConfig {
       inlineStyle: inlineStyle,
       textContextMenu: textContextMenu,
       citationConfig: citationConfig,
+      inlineImageConfig: inlineImageConfig,
       codeBlockConfig: codeBlockConfig,
       blockSpacing: blockSpacing
     )
@@ -127,6 +133,7 @@ extension MarkdownRenderConfig {
       inlineStyle: value,
       textContextMenu: textContextMenu,
       citationConfig: citationConfig,
+      inlineImageConfig: inlineImageConfig,
       codeBlockConfig: codeBlockConfig,
       blockSpacing: blockSpacing
     )
@@ -146,6 +153,7 @@ extension MarkdownRenderConfig {
       inlineStyle: inlineStyle,
       textContextMenu: value,
       citationConfig: citationConfig,
+      inlineImageConfig: inlineImageConfig,
       codeBlockConfig: codeBlockConfig,
       blockSpacing: blockSpacing
     )
@@ -164,6 +172,7 @@ extension MarkdownRenderConfig {
       inlineStyle: inlineStyle,
       textContextMenu: textContextMenu,
       citationConfig: citationConfig,
+      inlineImageConfig: inlineImageConfig,
       codeBlockConfig: codeBlockConfig,
       blockSpacing: value
     )
@@ -182,6 +191,7 @@ extension MarkdownRenderConfig {
       inlineStyle: inlineStyle,
       textContextMenu: textContextMenu,
       citationConfig: citationConfig,
+      inlineImageConfig: inlineImageConfig,
       codeBlockConfig: value,
       blockSpacing: blockSpacing
     )
@@ -200,6 +210,26 @@ extension MarkdownRenderConfig {
       inlineStyle: inlineStyle,
       textContextMenu: textContextMenu,
       citationConfig: value,
+      inlineImageConfig: inlineImageConfig,
+      codeBlockConfig: codeBlockConfig,
+      blockSpacing: blockSpacing
+    )
+  }
+
+  /// Returns a copy with `inlineImageConfig` replaced.
+  public func withInlineImageConfig(value: InlineImageConfig) -> MarkdownRenderConfig {
+    MarkdownRenderConfig(
+      shouldAnimateText: shouldAnimateText,
+      disableSmartTypography: disableSmartTypography,
+      blockQuoteStyle: blockQuoteStyle,
+      headingStyle: headingStyle,
+      orderedListStyle: orderedListStyle,
+      paragraphStyle: paragraphStyle,
+      tableStyle: tableStyle,
+      inlineStyle: inlineStyle,
+      textContextMenu: textContextMenu,
+      citationConfig: citationConfig,
+      inlineImageConfig: value,
       codeBlockConfig: codeBlockConfig,
       blockSpacing: blockSpacing
     )

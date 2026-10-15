@@ -34,6 +34,8 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
   public let textContextMenu: TextContextMenu?
   /// Configuration that controls inline citation parsing and rendering.
   public let citationConfig: CitationConfig
+  /// Configuration that controls how inline images (`![alt](source)` inside a paragraph) render.
+  public let inlineImageConfig: InlineImageConfig
   /// Configuration that controls code-block syntax-highlighting styling.
   public let codeBlockConfig: CodeBlockConfig
   /// Vertical spacing between adjacent blocks (paragraphs, headings,
@@ -422,6 +424,7 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
     inlineStyle: MarkdownInlineTextStyle = MarkdownRenderConfig.defaultInlineStyle,
     textContextMenu: TextContextMenu? = nil,
     citationConfig: CitationConfig = .default,
+    inlineImageConfig: InlineImageConfig = .default,
     codeBlockConfig: CodeBlockConfig = .default,
     blockSpacing: CGFloat = MarkdownRenderConfig.defaultBlockSpacing
   ) {
@@ -435,6 +438,7 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
     self.inlineStyle = inlineStyle
     self.textContextMenu = textContextMenu
     self.citationConfig = citationConfig
+    self.inlineImageConfig = inlineImageConfig
     self.codeBlockConfig = codeBlockConfig
     self.blockSpacing = blockSpacing
   }

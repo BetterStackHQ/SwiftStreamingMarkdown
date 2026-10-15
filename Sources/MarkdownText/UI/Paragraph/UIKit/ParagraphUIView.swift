@@ -326,6 +326,10 @@ class ParagraphUIView: UITextView {
           let action = makeAccessibilityAction(name: actionName, url: citationData.url)
           actions.append(action)
         }
+      } else if let image = attrs[.attachment] as? InlineImageAttachment {
+        // An inline image reads as its alt text, or not at all: never as the attachment glyph.
+        hasCitation = true
+        if !image.altText.isEmpty { labelComponents.append(image.altText) }
       } else {
         // Add the regular text for this range
         let substring = attributedString.attributedSubstring(from: range)

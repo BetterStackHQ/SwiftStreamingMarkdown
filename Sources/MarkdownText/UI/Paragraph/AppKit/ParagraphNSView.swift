@@ -220,6 +220,10 @@ class ParagraphNSView: NSTextView {
          let citationData = attachment.citationData {
         labelComponents.append(citationData.accessibilityLabel)
         hasAttachments = true
+      } else if let image = attrs[.attachment] as? InlineImageAttachment {
+        // An inline image reads as its alt text, or not at all: never as the attachment glyph.
+        if !image.altText.isEmpty { labelComponents.append(image.altText) }
+        hasAttachments = true
       } else {
         let text = attributedString.attributedSubstring(from: range).string
         if !text.isEmpty {
