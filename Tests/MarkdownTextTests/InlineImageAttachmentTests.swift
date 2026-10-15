@@ -10,6 +10,9 @@ import SwiftUI
 import UIKit
 import XCTest
 
+/// `@MainActor`: reading `attachment.image` draws the host's bitmap, which is confined to the
+/// main thread (`InlineImageAttachment.renderIfNeeded`).
+@MainActor
 final class InlineImageAttachmentTests: XCTestCase {
 
   private let parser = MarkdownParserImpl()
@@ -92,10 +95,10 @@ final class InlineImageAttachmentTests: XCTestCase {
   }
 
   func test_accessibilityReadsTheAltTextNotTheAttachmentGlyph() async throws {
-    let content = try await paragraph("Calling ![](avatar://simon)Simon and ![Juraj's avatar](avatar://juraj)Juraj", config: imageConfig())
+    let content = try await paragraph("Calling ![](avatar://simon)Simon and ![Face of Juraj](avatar://juraj)Juraj", config: imageConfig())
     let view = ParagraphUIView(frame: CGRect(x: 0, y: 0, width: 320, height: 60), textContainer: nil)
     view.setParagraphContents(content, lineSpacing: nil, animatedByWord: false)
-    XCTAssertEqual(view.accessibilityLabel, "Calling Simon and Juraj's avatarJuraj")
+    XCTAssertEqual(view.accessibilityLabel, "Calling Simon and Face of JurajJuraj")
     XCTAssertFalse(view.accessibilityLabel?.contains("\u{FFFC}") ?? true)
   }
 }
