@@ -9,7 +9,7 @@ import SwiftUI
 struct OrderedListView: View {
 
   let items: [MarkdownListItem]
-  /// The first item's number: "3. Restart" starts a list at 3, as CommonMark has it.
+  /// The first item's number (`MarkdownTextStyle.firstListNumber`).
   var start: Int = 1
   @Environment(\.markdownConfig) var config: MarkdownRenderConfig
 

@@ -1,29 +1,34 @@
 @testable import SwiftStreamingMarkdown
+import SwiftUI
 import XCTest
 
-/// An ordered list is numbered from its source's first number, as CommonMark has it: a host
-/// that renders the rest of a list on its own ("2. Gather logs" after the first step) keeps
-/// the step's number instead of restarting at 1.
+/// Ordered lists number from 1 whatever the source says, as most HTML renderers draw them
+/// (no `start` attribute). A host that renders the later items of a list on their own
+/// ("2. Gather logs" after the first step and its checklist) sets `firstListNumber`, which
+/// numbers the document's first top-level ordered list from there and nothing else.
 final class OrderedListStartTests: XCTestCase {
 
   private let parser = MarkdownParserImpl()
 
-  func test_listStartingLater_keepsItsFirstNumber() async {
-    let renderables = await parser.parse(text: "3. Restart\n4. Verify").convert(with: .default)
-
-    guard case .orderedList(_, let items, let start) = renderables.first else {
-      return XCTFail("Expected the parsed document to start with an ordered list")
+  private func starts(_ text: String, config: MarkdownRenderConfig = .default) async -> [Int] {
+    await parser.parse(text: text).convert(with: config).compactMap {
+      if case .orderedList(_, _, let start) = $0 { return start }
+      return nil
     }
-    XCTAssertEqual(items.count, 2)
-    XCTAssertEqual(start, 3)
   }
 
-  func test_listStartingAtOne_startsAtOne() async {
-    let renderables = await parser.parse(text: "1. First\n2. Second").convert(with: .default)
+  func test_aListNumberedFromThreeStillStartsAtOne() async {
+    let starts = await starts("3. Restart\n4. Verify")
+    XCTAssertEqual(starts, [1])
+  }
 
-    guard case .orderedList(_, _, let start) = renderables.first else {
-      return XCTFail("Expected the parsed document to start with an ordered list")
-    }
-    XCTAssertEqual(start, 1)
+  func test_firstListNumber_startsOnlyTheFirstList() async {
+    let config = MarkdownRenderConfig.default.withOrderedListStyle(value: .init(
+      textFonts: MarkdownRenderConfig.defaultOrderedListStyle.textFonts,
+      textColor: .primary,
+      firstListNumber: 2
+    ))
+    let starts = await starts("2. Gather logs\n\nThen:\n\n1. Other list", config: config)
+    XCTAssertEqual(starts, [2, 1])
   }
 }

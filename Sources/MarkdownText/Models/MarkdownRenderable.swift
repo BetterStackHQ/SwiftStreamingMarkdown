@@ -24,7 +24,7 @@ indirect enum MarkdownRenderable: Identifiable, Equatable, @unchecked Sendable {
   /// To be rendered as a heading
   case heading(id: String, level: Int, content: NSMutableAttributedString)
 
-  /// To be rendered as a ordered list view, numbered from `start` (the source's first number)
+  /// To be rendered as a ordered list view, numbered from `start`
   case orderedList(id: String, items: [MarkdownListItem], start: Int)
 
   /// To be rendered as an unordered list
