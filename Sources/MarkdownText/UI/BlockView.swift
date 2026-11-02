@@ -59,8 +59,8 @@ struct SingleBlockView: View {
             Spacer()
           }
         }.scrollIndicators(.hidden)
-      case .orderedList(_, let items):
-        OrderedListView(items: items)
+      case .orderedList(_, let items, let start):
+        OrderedListView(items: items, start: start)
       case .unorderedList(_, let items, let nestedLevel):
         UnorderedListView(items: items, nestedLevel: nestedLevel)
       case .codeBlock(_, let language, let code):

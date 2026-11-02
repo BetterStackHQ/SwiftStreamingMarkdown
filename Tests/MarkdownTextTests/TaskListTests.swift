@@ -50,7 +50,7 @@ final class TaskListTests: XCTestCase {
     let document = await parser.parse(text: text)
     let renderables = document.convert(with: .default)
 
-    guard case .orderedList(_, let items) = renderables.first else {
+    guard case .orderedList(_, let items, _) = renderables.first else {
       return XCTFail("Expected the parsed document to start with an ordered list")
     }
     XCTAssertTrue(items.allSatisfy { $0.checkbox == nil })
