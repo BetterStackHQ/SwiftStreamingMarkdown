@@ -51,12 +51,18 @@ public struct MarkdownRenderConfig: Hashable, Sendable {
     /// How an ordered list draws its item numbers. Read only when this style is the
     /// `orderedListStyle`; every other style ignores it. Defaults to `.plain`.
     public let orderedListMarker: OrderedListMarker
+    /// The number the document's first top-level ordered list starts at, for a host that
+    /// renders the later items of a list on their own; every other list starts at 1, as
+    /// the source's own numbers are ignored. Read only when this style is the
+    /// `orderedListStyle`. Defaults to 1.
+    public let firstListNumber: Int
 
     /// Create a text style with the given fonts and foreground color.
-    public init(textFonts: TextFonts, textColor: Color, orderedListMarker: OrderedListMarker = .plain) {
+    public init(textFonts: TextFonts, textColor: Color, orderedListMarker: OrderedListMarker = .plain, firstListNumber: Int = 1) {
       self.textFonts = textFonts
       self.textColor = textColor
       self.orderedListMarker = orderedListMarker
+      self.firstListNumber = firstListNumber
     }
   }
 

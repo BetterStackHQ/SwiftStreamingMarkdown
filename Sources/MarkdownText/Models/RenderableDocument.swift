@@ -73,7 +73,7 @@ extension MarkdownRenderable {
     switch self {
     case .paragraph(_, let str):
       return [str]
-    case .orderedList(_, let items):
+    case .orderedList(_, let items, _):
       return items.flatMap { $0.attributedStrings() }
     case .unorderedList(_, let items, _):
       return items.flatMap { $0.attributedStrings() }

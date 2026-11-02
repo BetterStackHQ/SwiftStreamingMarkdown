@@ -9,6 +9,8 @@ import SwiftUI
 struct OrderedListView: View {
 
   let items: [MarkdownListItem]
+  /// The first item's number (`MarkdownTextStyle.firstListNumber`).
+  var start: Int = 1
   @Environment(\.markdownConfig) var config: MarkdownRenderConfig
 
   var body: some View {
@@ -16,7 +18,7 @@ struct OrderedListView: View {
     VStack(alignment: .leading, spacing: marker.itemSpacing, content: {
       ForEach(0..<items.count, id: \.self) { idx in
         HStack(alignment: .centerOfFirstLine, spacing: marker.contentSpacing) {
-          markerView(marker, number: idx + 1)
+          markerView(marker, number: start + idx)
             .transition(.opacity)
           if let firstChild = items[idx].children.first {
             if case .paragraph(_, let contents) = firstChild {
