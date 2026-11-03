@@ -59,7 +59,11 @@ struct UnorderedListView: View {
           .foregroundStyle( Color.Theme.Foreground.Primary.Primary450)
           .transition(.opacity)
       }
-    }.frame(width: 22.0)
+    }
+    .frame(width: 22.0)
+    // The item's own label already says where it sits and, for a task, whether it's
+    // checked; the marker would otherwise read as a separate "Circle" image.
+    .accessibilityHidden(true)
   }
 
   private func listItemAccessibilityLabel(for content: String, at index: Int, checkbox: MarkdownListItem.Checkbox?) -> String {
