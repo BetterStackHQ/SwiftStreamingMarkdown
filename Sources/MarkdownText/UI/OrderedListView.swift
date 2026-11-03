@@ -20,6 +20,8 @@ struct OrderedListView: View {
         HStack(alignment: .centerOfFirstLine, spacing: marker.contentSpacing) {
           markerView(marker, number: start + idx)
             .transition(.opacity)
+            // Read as part of the item ("List with 2 items, item 1: …"), not on its own.
+            .accessibilityHidden(true)
           if let firstChild = items[idx].children.first {
             if case .paragraph(_, let contents) = firstChild {
               // Wrap the SingleBlockView to provide proper baseline alignment. This is to fix the mis-alignment when the view is rendered off-screen, e.g. snapshot.
